@@ -1,0 +1,27 @@
+# Machine learning aplicado al análisis de señales temporales para extraer información de imágenes por resonancia magnética nuclear más allá de su resolución.
+
+## Description
+Este proyecto contiene una primera versión de los programas utilizados para la tesis de licenciatura en física del insituto balseiro. El objetivo de la tesis es aplicar técnicas de machine learning para extraer información de imágenes por resonancia magnética nuclear más allá de su resolución espacial. Para ello se utilizan primeramente señales de Hahn simuladas, y luego se aplican las técnicas de PCA para así servir de entrada a una red neuronal feedforward que se encarga de dar parámetros realcionados con la distribución de tamaños del sistema medido con RMN del cual se obtiene la señal de Hahn. Además se busca la generación de estas señales de Hahn a partir de técnincas inovadoras como las neural ODEs, que permitirian la predicción de estas señales utilizando menos datos experimentales los cuales son costosos de obtener.
+
+## Table of Contents
+- [Generacion_de_datos_de_señales_de_Hahn](#Generación de datos de señales de Hahn)
+- [Red_neuronal_feedforward](#Red neuronal feedforward)
+- [NODE](#Neural ODE)
+- [License](#license)
+- [Contacto](#contacto)
+
+## Generación de datos de señales de Hahn
+Programas en Julia que permite la generación y lectura de datos de señales de Hahn simuladas como tambien las distribuciones de probabilidad de tamaños. Contiene además el análisis de componentes principales de estos datos generados.
+
+## Red neuronal feedforward
+Programa con la exploración e implemntación de una red neuronal feedforward para la predicción de parámetros relacionados con la distribución de tamaños del sistema medido con RMN del cual se obtiene la señal de Hahn.
+
+## Neural ODE
+Programa con la exploración e implemntación de una red neuronal ODE para la generación de señales de Hahn a partir de menos datos.
+
+## License
+ib-licencia
+
+## Contacto
+juanpablom6789@gmail.com
+juan.morales@ib.edu.ar
