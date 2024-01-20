@@ -1,0 +1,5 @@
+Desde 1 a 30 Batchsize = 64 con shuffle = true, bajando el learning rate cada 500 époocas a \eta * 0.2 durante 3000 époocas
+
+Desde 31 a 34 Batchsize = 100, con shuffle = true, bajando el learning rate cada 500 époocas a \eta * 0.2 durante 3000 épocas
+
+Desde 36 a 42 Batchsize = 64, con shuffle = true, bajando el learning rate cada 500 époocas a \eta * 0.2 durante 3000 épocas
