@@ -248,7 +248,6 @@ end
 # Entrenamos la red neuronal
 Flux.train!(loss_node, Flux.params(p,U0), ncycle(train_loader, epochs), opt, cb = callback)
 
-
 ##############################################################################################
 # Vamos a hacer un plot de las señales de entrenamiento y sus predicciones
 colors = [:blue, :blue, :blue, :blue, :blue]
