@@ -42,7 +42,7 @@ t = vcat(t_short, t_long)
 
 # Vamos a tomar un subconjunto de t para hacer el entrenamiento de la NODE para agilizar los tiempos de entrenamiento
 muestreo_corto = 50 # Cada cuantos tiempos tomamos un timepo para entrenar la NODE
-muestreo_largo = 10
+muestreo_largo = 5
 t_short = t_short[1:muestreo_corto:end]
 t_long = t_long[1:muestreo_largo:end]
 t = vcat(t_short, t_long)
@@ -147,39 +147,41 @@ end
 
 ##############################################################################################
 # Vamos a tomar un cierto rango de señales
-rango = 1:100
-rango = 101:201
+rango = 1:9:100
+#rango = 101:201
 
 Signals_test, Signals_test_derivadas, column_lcm_test, column_σs_test = Get_Signals_Data_Training(path_read, rango, lcms, σs, muestreo_corto, muestreo_largo)
 
-plot(t, Signals_test[1,:], label = "$(column_lcm_test[1]) $(column_σs_test[1])", xlabel = "Tiempo", ylabel = "Señal", title = "Señales de prueba", lw = 2, )
-plot!(t, Signals_test[2,:], label = "$(column_lcm_test[2]) $(column_σs_test[2])", lw = 2)
-plot!(t, Signals_test[3,:], label = "$(column_lcm_test[3]) $(column_σs_test[3])", lw = 2)
+Signals_test
 
-plot!(t, Signals_test[end,:], label = "$(column_lcm_test[end]) $(column_σs_test[end])", lw = 2)
-plot!(t, Signals_test[end-1,:], label = "$(column_lcm_test[end-1]) $(column_σs_test[end-1])", lw = 2)
-plot!(t, Signals_test[end-2,:], label = "$(column_lcm_test[end-2]) $(column_σs_test[end-2])", lw = 2)
+scatter(t, Signals_test[1,:], label = "$(column_lcm_test[1]) $(column_σs_test[1])", xlabel = "Tiempo", ylabel = "Señal", title = "Señales de prueba", lw = 2, )
+scatter!(t, Signals_test[2,:], label = "$(column_lcm_test[2]) $(column_σs_test[2])", lw = 2)
+scatter!(t, Signals_test[3,:], label = "$(column_lcm_test[3]) $(column_σs_test[3])", lw = 2)
+
+#scatter!(t, Signals_test[Int(end//2),:], label = "$(column_lcm_test[Int(end//2)]) $(column_σs_test[Int(end//2)])", lw = 2)
+
+scatter!(t, Signals_test[end,:], label = "$(column_lcm_test[end]) $(column_σs_test[end])", lw = 2)
+scatter!(t, Signals_test[end-1,:], label = "$(column_lcm_test[end-1]) $(column_σs_test[end-1])", lw = 2)
+scatter!(t, Signals_test[end-2,:], label = "$(column_lcm_test[end-2]) $(column_σs_test[end-2])", lw = 2)
 
 ##############################################################################################
 # Definimos el batch_size
-batch_size = 5
+batch_size = 7
+
+# Seteamos un tiempo de predicción y un tiempo de entrenamiento
 
 t = vcat(t_short, t_long)
-# Seteamos un tiempo de predicción y un tiempo de entrenamiento
-tforecast = t[16:end]
-t
 
-Signals_test_train = Signals_test[:,1:15]
-Signals_test_valid = Signals_test[:,16:end]
+tforecast = t[30:end]
+t = t[1:29]
 
-Signals_test_derivadas_train = Signals_test_derivadas[1:15,:]
-Signals_test_derivadas_valid = Signals_test_derivadas[16:end,:]
+Signals_test_train = Signals_test[:,1:29]
+Signals_test_valid = Signals_test[:,30:end]
+
+Signals_test_derivadas_train = Signals_test_derivadas[1:29,:]
+Signals_test_derivadas_valid = Signals_test_derivadas[30:end,:]
 
 train_loader = Flux.Data.DataLoader((Signals_test_train, t), batchsize = batch_size)
-
-
-
-
 
 nn = Chain(Dense(2,32, tanh),
             Dense(32,64, tanh),
@@ -190,7 +192,7 @@ nn = Chain(Dense(2,32, tanh),
  η = 5e-3
 
  # Vamos a tomar 2000 épocas para entrenar todas las arquitecturas
- epochs = 250
+ epochs = 200
 
  # Todas las señales tienen la misma condición inicial
  U0 = ones32(size(Signals_test_train)[1])
@@ -245,7 +247,7 @@ end
 # Función que calcula el loss de la red neuronal para un batch de datos y sus respectivos tiempos
 function loss_node(batch, time_batch)
     y = Predict_Singals(U0, extra_parameters, time_batch)
-    return mean((y .- batch') .^ 2)
+    return Flux.mse(y, batch')
 end
 
 # Función de callback para guardar el loss en cada época
@@ -265,3 +267,47 @@ end
 
 # Entrenamos la red neuronal
 Flux.train!(loss_node, Flux.params(p,U0), ncycle(train_loader, epochs), opt, cb = callback)
+
+##############################################################################################
+
+# Vamos a hacer la predicción de las señales
+
+size(Signals_test_train)
+
+linspace = range(-0.05, 1.1, length = 1000)
+constant = ones(length(linspace))*t[29]
+
+
+Plots_Train = []
+
+t
+tforecast
+
+scatter(vcat(t,tforecast), Signals_test[1,:], label = "Señal Real", xlabel = L"$t$ (s)", ylabel = L"S(t)", title = L"Predicción de señal $l_{cm} = $" * " $(column_lcm_test[1]), " * L"σ = " * "$(column_σs_test[1])", lw = 2, tickfontsize=12, labelfontsize=11, legendfontsize=5, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10, legend_position = :bottomleft)
+scatter!(t, Predict_Singals(U0[1], Signals_test_derivadas_train[:,1], t), color = :red, label = "Predicción datos entrenamiento", lw = 2, tickfontsize=12, labelfontsize=11, legendfontsize=5, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10)
+scatter!(tforecast, Predict_Singals(U0[1], Signals_test_derivadas_train[:,1], tforecast), label = "Predicción", ls = :dash, lw = 2, tickfontsize=12, labelfontsize=11, legendfontsize=5, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10)
+plot!(constant, linspace, label = false, lw = 2, ls = :dash, color = :gray)
+
+scatter(vcat(t,tforecast), Signals_test[end,:], label = "Señal Real", xlabel = L"$t$ (s)", ylabel = L"S(t)", title = L"Predicción de señal $l_{cm} = $" * " $(column_lcm_test[2]), " * L"σ = " * "$(column_σs_test[2])", lw = 2, tickfontsize=12, labelfontsize=11, legendfontsize=5, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10, legend_position = :bottomleft)
+scatter!(t, Predict_Singals(U0[1], Signals_test_derivadas_train[:,end], t), color = :red, label = "Predicción datos entrenamiento", lw = 2, tickfontsize=12, labelfontsize=11, legendfontsize=5, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10)
+scatter!(tforecast, Predict_Singals(U0[1], Signals_test_derivadas_train[:,end], tforecast), label = "Predicción", ls = :dash, lw = 2, tickfontsize=12, labelfontsize=11, legendfontsize=5, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10)
+plot!(constant, linspace, label = false, lw = 2, ls = :dash, color = :gray)
+
+for i in 1:size(Signals_test_train)[1]
+    if i == 1        
+        actual_plot = plot(vcat(t,tforecast), Signals_test[i,:], label = "Señal Real", xlabel = L"$t$ (s)", ylabel = L"S(t)", title = L"Predicción de señal $l_{cm} = $" * " $(column_lcm_test[i]), " * L"σ = " * "$(column_σs_test[i])", lw = 2, tickfontsize=12, labelfontsize=11, legendfontsize=1, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10, legend_position = :bottomleft)
+        plot!(actual_plot, t, Predict_Singals(U0[i], Signals_test_derivadas_train[:,i], t), color = :red, label = "Predicción datos entrenamiento", lw = 2, tickfontsize=12, labelfontsize=11, legendfontsize=15, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10)
+        plot!(actual_plot, tforecast, Predict_Singals(U0[i], Signals_test_derivadas_train[:,i], tforecast), label = "Predicción", ls = :dash, lw = 2, tickfontsize=12, labelfontsize=11, legendfontsize=15, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10)
+        plot!(actual_plot, constant, linspace, label = false, lw = 2, ls = :dash, color = :gray)
+        push!(Plots_Train, actual_plot)
+    else
+        actual_plot = plot(vcat(t,tforecast), Signals_test[i,:], label = "Señal Real", xlabel = L"$t$ (s)", ylabel = L"S(t)", title = L"Predicción de señal $l_{cm} = $" * " $(column_lcm_test[i]), " * L"σ = " * "$(column_σs_test[i])", lw = 2, tickfontsize=12, labelfontsize=11, legendfontsize=1, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10, legend_position = :best)
+        plot!(actual_plot, t, Predict_Singals(U0[i], Signals_test_derivadas_train[:,i], t), color = :red, label = "Predicción datos entrenamiento", lw = 2, tickfontsize=12, labelfontsize=11, legendfontsize=15, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10)
+        plot!(actual_plot, tforecast, Predict_Singals(U0[i], Signals_test_derivadas_train[:,i], tforecast), label = "Predicción", ls = :dash, lw = 2, tickfontsize=12, labelfontsize=11, legendfontsize=15, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10)
+        plot!(actual_plot, constant, linspace, label = false, lw = 2, ls = :dash, color = :gray)
+        push!(Plots_Train, actual_plot)
+    end
+    display(plot(t, Signals_test[i,:], label = "Señal $i", xlabel = L"t", ylabel = L"S(t)", title = "Predicción de señal lcm = $(column_lcm_test[i]), σ = $(column_σs_test[i])", lw = 2, markershape = :circle, tickfontsize=12, labelfontsize=15, legendfontsize=15, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10))
+    display(plot!(t, Predict_Singals(U0[i], Signals_test_derivadas[:,i], t), label = "Predicción $i", markershape = :star6, ls = :dash, lw = 2))
+    # savefig("C:\\Users\\Propietario\\Desktop\\ib\\Tesis_V1\\Proyecto_Tesis\\3-GeneracionDeSeñales\\Exploracion\\Figuras_arquitectura_30\\Arquitectura_30_Signal_$i.pdf")
+end
