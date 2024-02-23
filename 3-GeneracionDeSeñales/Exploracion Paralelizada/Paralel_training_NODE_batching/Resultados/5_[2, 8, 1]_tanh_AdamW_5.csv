@@ -1,0 +1,2 @@
+ID,Arquitectura,Activación,Optimizador,Batch_Size,Loss_Final_Entrenamiento,Loss_Final_Predicción
+5,"[2, 8, 1]",tanh,AdamW,5,0.027963654295663946,0.01386983895915816

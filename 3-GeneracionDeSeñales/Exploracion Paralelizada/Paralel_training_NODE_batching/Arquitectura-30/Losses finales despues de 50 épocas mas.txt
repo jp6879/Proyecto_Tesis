@@ -1,0 +1,4 @@
+Losses finales despues de 50 épocas mas
+Loss Entrenamiento: 0.01243182688326305
+
+Loss Predicción: 0.007258583880809291
