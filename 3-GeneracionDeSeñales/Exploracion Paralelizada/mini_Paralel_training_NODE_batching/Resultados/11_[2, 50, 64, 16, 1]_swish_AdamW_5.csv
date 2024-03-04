@@ -1,2 +1,0 @@
-ID,Arquitectura,Activación,Optimizador,Batch_Size,Loss_Final_Entrenamiento,Loss_Final_Predicción
-11,"[2, 50, 64, 16, 1]",swish,AdamW,5,0.028833956398946876,0.015388601307903406
