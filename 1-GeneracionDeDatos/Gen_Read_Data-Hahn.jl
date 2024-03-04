@@ -17,9 +17,17 @@ D0 = 1e3 # Coeficiente de difusión (μm²/s) del Ejercico
 ##########################################################################################
 # Primero para generar las señales tenemos que tener una distribución de tamaños de compartimientos lc
 # Generación de distribution log-normal, con parámetros lcm y σ, en este caso lcm es el tamaño medio del compartimiento y σ es la desviación estándar del tamaño del compartimiento
-# Hagamos una función P(lc) de la distribucion log-normal
 
-function P(lc,lcm,σ)
+function P(lc, lcm, σ)
+    """Función que genera una distribución log-normal
+    Parámetros:
+        lc: tamaño de compartimiento
+        lcm: tamaño medio de compartimiento
+        σ: desviación estándar de compartimiento
+
+    Retorna:
+        P(lc): distribución log-normal
+    """
     return ( exp( -(log(lc) - log(lcm))^2 / (2σ^2) ) ) / (lc*σ*sqrt(2π))
 end
 
@@ -27,6 +35,13 @@ end
 # Si el tamaño de los compartimientos es único entonces la señal detectada es simplemente la magnetización de Hahn M(t)
 # Función M_l Magnetización de Hahn, para un tiempo t y un tamaño lc
 function Ml_Hahn(t, lc)
+    """Función que genera la magnetización de Hahn
+    Parámetros:
+        t: tiempo
+        lc: tamaño de compartimiento
+    Retorna:
+        Ml_Hahn(t, lc): magnetización de Hahn
+    """
     τc = lc^2 / (2 * D0)
     term1 = -γ^2 * G^2 * D0 * τc^2
     term2 = t - τc * (3 + exp(-t / τc) - 4 * exp(-t / (2 * τc)))
@@ -39,6 +54,17 @@ end
 # el tamaño mínimo de compartimiento l0, el tamaño máximo de compartimiento lf y el tiempo t
 
 function S_han(lcm, σ, N, l0, lf, t)
+    """Función que genera la señal detectada S(t)
+    Parámetros:
+        lcm: tamaño medio de compartimiento
+        σ: desviación estándar de compartimiento
+        N: cantidad de compartimientos
+        l0: tamaño mínimo de compartimiento
+        lf: tamaño máximo de compartimiento
+        t: tiempo
+    Retorna:
+        S: señal detectada
+    """
     lc = range(l0, lf, length = N) # Generamos los tamaños de compartimientos lc desde l0 hasta lf
 
     P_lc = P.(lc,lcm, σ) # Consideramos media lcm y ancho σ
@@ -60,6 +86,19 @@ end
 # time_sample_lenght: cantidad de puntos de tiempo
 
 function GenData(N, lcm, σ, l0, lf, t)
+    """Función que genera los datos de las señales normalizadas y las distribuciones de tamaños de compartimientos
+    Parámetros:
+        N: cantidad de compartimientos lc
+        lcm: tamaño medio de compartimiento
+        σ: desviación estándar de compartimiento
+        l0: tamaño mínimo de compartimiento
+        lf: tamaño máximo de compartimiento
+        time_sim: tiempo máximo de simulación
+        time_sample_lenght: cantidad de puntos de tiempo
+    Retorna:
+        S: señal detectada
+        P_l: distribución de tamaños de compartimientos
+    """
     # Generamos los tamaños de compartimientos
     lc = range(l0, lf, length = N)
 
@@ -84,7 +123,19 @@ end
 # σs vector de desviaciones estándar
 
 function GenCSVData(N, time_sample_lenght, l0, lf, t, lcms, σs, path)
-
+    """Función que genera los datos en CSV para cada combinación de parámetros en el path especificado
+    Parámetros:
+        N: cantidad de compartimientos lc
+        time_sample_lenght: cantidad de puntos de tiempo
+        l0: tamaño mínimo de compartimiento
+        lf: tamaño máximo de compartimiento
+        t: tiempo
+        lcms: vector de tamaños medios de compartimientos
+        σs: vector de desviaciones estándar
+        path: path donde se guardan los datos
+    Retorna:
+        CSV: archivos con los datos generados
+    """
     function fill_missing(value, column, max_lenght)
         if length(column) < max_lenght
             return vcat(column,fill(value, max_lenght - length(column)))
@@ -117,6 +168,20 @@ end
 # Esta función acumula todos los archivos generados de las señales y las distribuciones de tamaños de compartimientos especificando cada lcm y σ
 
 function ReadCSVData(N, time_sample_lenght, l0, lf, t, lcms, σs, path)
+    """Función que lee los datos generados
+    Parámetros:
+        N: cantidad de compartimientos lc
+        time_sample_lenght: cantidad de puntos de tiempo
+        l0: tamaño mínimo de compartimiento
+        lf: tamaño máximo de compartimiento
+        t: tiempo
+        lcms: vector de tamaños medios de compartimientos
+        σs: vector de desviaciones estándar
+        path: path donde se guardan los datos
+    Retorna:
+        Probabilitys: distribuciones de tamaños de compartimientos
+        Signals: señales generadas
+    """
     lc = range(l0, lf, length = N)
     length_t = length(t)
     length_lc = length(lc)

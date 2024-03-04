@@ -9,92 +9,15 @@ using Statistics
 using StatsPlots
 using PlotlyJS
 
-##########################################################################################
-
-# TODO
-# Traemos los mismos datos de los parametros utilizados para generar los datos, deberiamos hacer una función grande en la proxima función que genere los datos donde les pasamos
-# Todos estos parámetros desde otro programa, como ahora generamos pocos datos me quedo con esto
-
-###################################################ACORDARSE DE ESTO#################################################################
-
-# # Parámetros fijos
-
-# # Lo que dejamos constante es el número de compartimientos, el rango de tamaños de correlación lc, el tiempo de simulación final y el muestreo de timepos
-# N = 2000
-# time_sample_lenght = 100
-
-# # Rango de tamaños de compartimientos en μm
-# l0 = 0.01
-# lf = 15
-
-# # Tiempo final de simulación en s
-# tf = 1
-
-# # Ahora generamos los datos para eso necesitamos hacer el sampling de los lc y los t
-# lc = range(l0, lf, length = N)
-# t = range(0, tf, length = time_sample_lenght)
-
-# # Parametros que se varian
-
-# # Rango de tamaños medios de correlación en μm
-# lcms = 0.5:0.01:6
-# σs = 0.01:0.01:1
-
-#------------------------------------------------------------------------------------------
-# # Parámetros fijos
-
-# # Lo que dejamos constante es el número de compartimientos, el rango de tamaños de correlación lc, el tiempo de simulación final y el muestreo de timepos
-# N = 1700
-# time_sample_lenght = 100
-
-# # Rango de tamaños de compartimientos en μm
-# l0 = 0.05
-# lf = 10
-
-# # Tiempo final de simulación en s
-# tf = 1
-
-# # Ahora generamos los datos para eso necesitamos hacer el sampling de los lc y los t
-# lc = range(l0, lf, length = N)
-# t = range(0, tf, length = time_sample_lenght)
-
-# # Parametros que se varian
-
-# # Rango de tamaños medios de correlación en μm
-# lcms = 0.5:0.005:6
-# σs = 0.01:0.01:1
-
-##########################################################################################
-# Parámetros fijos
-N = 5000
-time_sample_lenght_long = 1000
-time_sample_lenght_short = 100
-
-# Rango de tamaños de compartimientos en μm
-l0 = 0.01
-lf = 45
-
-# Tiempo final de simulación en s
-tf = 1
-
-# Ahora generamos los datos para eso necesitamos hacer el sampling de los lc y los t
-lc = range(l0, lf, length = N) # Esto nos da un muestreo de 0,008998 μm en lc
-t_short = collect(range(0, 0.1, length = time_sample_lenght_short)) # Muestreo corto de 0.1 ms
-t_long = collect(range(0.1, 1, length = time_sample_lenght_long)) # Muestreo largo de 10 ms
-
-# Concatenamos los tiempos para tener un muestreo completo 
-t = vcat(t_short, t_long)
-
-# Parametros que se varian, estos se corresponden a la mediana y la desviación estándar de la distribución de tamaños de compartimientos lcms en μm y σs adimensionales
-
-lcms = 0.5:0.01:6
-σs = 0.01:0.01:1
-
-##########################################################################################
-
 # Leemos los datos que generamos en Data_Read_prePCA.jl
 # Función que lee los datos de las señales 
 function GetSignals(path_read)
+    """Función que lee los datos que generamos
+    Parametros
+        path_read: string con la dirección donde se encuentran los datos
+    Retorna
+        dataSignals: matriz con los datos de las señales NxM donde M es el número de señales y N el número de datos por señal
+    """
     dataSignals = CSV.read(path_read * "\\dataSignals.csv", DataFrame)
     dataSignals = Matrix(dataSignals)
     return dataSignals
@@ -102,13 +25,21 @@ end
 
 # Función que lee los datos de las distribuciones de probabilidad
 function GetProbd(path_read)
+    """Función que lee los datos que generamos
+    Parametros
+        path_read: string con la dirección donde se encuentran los datos
+    Retorna
+        dataProbd: matriz con los datos de las distribuciones de probabilidad NxM donde M es el número de distribuciones y N el número de datos por distribución
+    """
+
     dataProbd = CSV.read(path_read * "\\dataProbd.csv", DataFrame)
     dataProbd = Matrix(dataProbd)
     return dataProbd
 end
-
+# Elegir el path donde se encuentran los datos
 path_read = "C:\\Users\\Propietario\\Desktop\\ib\\Tesis_V1\\Proyecto_Tesis\\1-GeneracionDeDatos\\Datos_Final\\datos_PCA"
 
+# Datos de las señales y las distribuciones de probabilidad
 dataSignals = GetSignals(path_read)
 dataProbd = GetProbd(path_read)
 
@@ -118,6 +49,12 @@ dataProbd = GetProbd(path_read)
 # Vamos a centrar los datos de estas columans para que tengan media 0
 
 function CenterData(Non_C_Matrix)
+    """Función que centra los datos de las columnas de una matriz para que tengan media 0
+    Parametros
+        Non_C_Matrix: matriz con los datos a centrar
+    Retorna
+        centered_data: matriz con los datos centrados
+    """
 	data_matrix = Non_C_Matrix
 	col_means = mean(data_matrix, dims = 1)
 	centered_data = data_matrix .- col_means
@@ -132,7 +69,14 @@ end
 # pca_model: modelo de PCA que se puede usar para reconstruir los datos originales, además contiene información sobre los componentes principales
 
 function PCA_Data(dataIN)
+    """Función que realiza PCA sobre los datos de entrada y grafica la varianza explicada por cada componente principal
 
+    Parametros
+        dataIN: matriz con los datos a los que se les va a realizar PCA
+    Retorna
+        reduced_dataIN: datos reducidos por PCA
+        pca_model: modelo de PCA que se puede usar para reconstruir los datos originales, además contiene información sobre los componentes principale
+    """
     # Primero centramos los datos
     dataIN_C = CenterData(dataIN)
 
@@ -181,6 +125,7 @@ pcs_vars_pd = principalvars(pca_model_probd)
 
 limdim_S = 0
 limdim_P = 0
+# Buscamos el número de componentes principales que nos da la varianza acumulada deseada
 for i in 1:length(pcs_vars_s)
     if sum(pcs_vars_s[1:i]) / sum(pcs_vars_s) * 100 > 99
         println("La varianza acumulada de las señales es del ", sum(pcs_vars_s[1:i]) / sum(pcs_vars_s) * 100, "% con ", i, " componentes principales")
@@ -197,9 +142,11 @@ for i in 1:length(pcs_vars_pd)
     end
 end
 
+# Guardamos los datos de los componentes principales en un DataFrame
 df_PCA_Signals = DataFrame(reduced_data_Signals, :auto)
 df_PCA_Probd = DataFrame(reduced_data_Probd, :auto)
 
+# Limitamos el número de componentes principales a los que nos dan la varianza acumulada deseada
 df_PCA_Signals = df_PCA_Signals[1:limdim_S,:]
 df_PCA_Probd = df_PCA_Probd[1:limdim_P,:]
 
@@ -227,8 +174,11 @@ df_PCA_Probd = df_PCA_Probd[1:limdim_P,:]
 
 ##########################################################################################
 
-# Identificación de los datos reducidos según los parámetros utilizados para generar los datos originales lcm y σ
+##########################################################################################
+# Traemos los parametros fijos desde otro programa para los graficos
+include("C:\\Users\\Propietario\\Desktop\\ib\\Tesis_V1\\Proyecto_Tesis\\1-GeneracionDeDatos\\Parametros.jl")
 
+# Identificación de los datos reducidos según los parámetros utilizados para generar los datos originales lcm y σ
 dim1 = dimlcm = length(lcms)
 dim2 = dimσ = length(σs)
 
@@ -267,6 +217,7 @@ df_PCA_Probd = DataFrame(
 # Guardamos estos datos en CSV
 path_save = "C:\\Users\\Propietario\\Desktop\\ib\\Tesis_V1\\Proyecto_Tesis\\1-GeneracionDeDatos\\Datos_Final\\datos_PCA"
 
+# Estos datos contienen 4 columnas, 3 con las componentes principales y 2 con la identificacion de los datos
 CSV.write(path_save * "\\df_PCA_Signals.csv", df_PCA_Signals)
 CSV.write(path_save * "\\df_PCA_Probd.csv", df_PCA_Probd)
 
