@@ -168,7 +168,7 @@ t = vcat(t_short, t_long)
 rango = 100:200:10000
 Signals_test, Signals_test_derivadas, column_lcm_test, column_sigmass_test = Get_Signals_Data_Training(path_read, rango, lcms, sigmas, muestreo_corto, muestreo_largo)
 
-idx_forecast = 25
+idx_forecast = 50
 
 tforecast = t[idx_forecast:end]
 ttrain = t[1:idx_forecast-1]
@@ -214,7 +214,7 @@ f(x,p) = round(Int, x * (length(p) - 1)) + 1
 p, re = Flux.destructure(nn) # Para entrenar la red tenemos que extraer los parametros de la red neuronal en su condicion inicial
 
 # Leemos parámetros de la arquitectura 17
-θ = CSV.read("C:\\Users\\Propietario\\Desktop\\ib\\Tesis_V1\\Proyecto_Tesis\\3-GeneracionDeSeñales\\Exploracion Paralelizada\\Final_trainingNODE\\Parameters\\13_Parameters.csv", DataFrame)
+θ = CSV.read("C:\\Users\\Propietario\\Desktop\\ib\\Tesis_V1\\Proyecto_Tesis\\3-GeneracionDeSeñales\\Exploracion Paralelizada\\Final_trainingNODE\\Parameters\\13_Parameters_WP.csv", DataFrame)
 p = Float32.(θ[:,1])
 
 ##############################################################################################

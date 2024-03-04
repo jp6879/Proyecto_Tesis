@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.27
+# v0.19.40
 
 using Markdown
 using InteractiveUtils
@@ -443,5 +443,5 @@ Es necesario realizar una exploración para los hiperparámetros restantes pero 
 # ╠═992e3c61-f9f3-469b-aeee-e5fcf4c6d886
 # ╠═27184396-240c-475b-9d2c-6057e5af005c
 # ╠═9b3ace8d-ecd7-4afb-9a2a-82997d567c1a
-# ╟─7b5d50c2-8788-47f0-a031-1c0c22a22f4f
+# ╠═7b5d50c2-8788-47f0-a031-1c0c22a22f4f
 # ╠═ad4c7345-d780-4905-9fac-8d8f079de673

@@ -117,33 +117,37 @@ t_long = collect(range(0.1, 1, length = 100))
 t = vcat(t_short, t_long)
 
 # Vamos a tomar un subconjunto de t para hacer el entrenamiento de la NODE para agilizar los tiempos de entrenamiento
-muestreo_corto = 50 # Cada cuantos tiempos tomamos un timepo para entrenar la NODE
-muestreo_largo = 4
+muestreo_corto = 100 # Cada cuantos tiempos tomamos un timepo para entrenar la NODE
+muestreo_largo = 1
 t_short = t_short[1:muestreo_corto:end]
 t_long = t_long[1:muestreo_largo:end]
 
 t = vcat(t_short, t_long)
 
+path_read = "C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/1-GeneracionDeDatos/Datos_Final/datos_PCA"
+
 # Voy a tomar 100 señales elegidas tomando lcm de 5 en 5 hasta 5.45 μm y manteniendo σ = 1.0
-rango = 100:500:50000
+# rango = 100:500:50000
+rango = 100:200:10000
 Signals_test, Signals_test_derivadas, column_lcm_test, column_sigmass_test = Get_Signals_Data_Training(path_read, rango, lcms, sigmas, muestreo_corto, muestreo_largo)
 
-tforecast = t[23:end]
-t = t[1:22]
+idx_forecast = 25
 
-Signals_test_train = Signals_test[:,1:22]
-Signals_test_valid = Signals_test[:,23:end]
+tforecast = t[idx_forecast:end]
+t = t[1:idx_forecast-1]
 
+Signals_test_train = Signals_test[:,1:idx_forecast-1]
+Signals_test_valid = Signals_test[:,idx_forecast:end]
 
-for i in 1:100
-    if i == 1
-        pl = scatter(t, Signals_test_train[i,:], xlabel = "t (s)", ylabel = "S(t)", color = :orange, lw = 3, label = "σ = $(column_sigmass_test[i]) lcm = $(column_lcm_test[i])")
-        scatter!(tforecast, Signals_test_valid[i,:], color = :red, lw = 3, label = false)
-    elseif i == 50
+pl = scatter(t, Signals_test_train[1,:], xlabel = "t (s)", ylabel = "S(t)", color = :cyan, lw = 3, label = "σ = $(column_sigmass_test[1]) lcm = $(column_lcm_test[1])", tickfontsize=12, labelfontsize=15, legendfontsize=11, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10)
+scatter!(tforecast, Signals_test_valid[1,:], color = :red, lw = 3, label = false)
+for i in 2:50
+            
+    # if i == 50
+    #     scatter!(t, Signals_test_train[i,:], color = :green, lw = 3, label = "σ = $(column_sigmass_test[i]) lcm = $(column_lcm_test[i])")
+    #     scatter!(tforecast, Signals_test_valid[i,:], color = :red, lw = 3, label = false)
+    if i == 50
         scatter!(t, Signals_test_train[i,:], color = :yellow, lw = 3, label = "σ = $(column_sigmass_test[i]) lcm = $(column_lcm_test[i])")
-        scatter!(tforecast, Signals_test_valid[i,:], color = :red, lw = 3, label = false)
-    elseif i == 100
-        scatter!(t, Signals_test_train[i,:], color = :green, lw = 3, label = "σ = $(column_sigmass_test[i]) lcm = $(column_lcm_test[i])")
         scatter!(tforecast, Signals_test_valid[i,:], color = :red, lw = 3, label = false)
     else
         scatter!(t, Signals_test_train[i,:], color = :blue, lw = 3, label = false)
@@ -152,6 +156,10 @@ for i in 1:100
 end
 
 display(pl)
+
+savefig("Señales_Exploracion2.png")
+savefig("Señales_Exploracion2.pdf")
+
 
 pl = scatter(t,Signals_test_train[1,:], xlabel = "t (s)", ylabel = "S(t)", color = :blue, lw = 3)
 scatter!(tforecast,Signals_test_valid[1,:], color = :red, lw = 3)

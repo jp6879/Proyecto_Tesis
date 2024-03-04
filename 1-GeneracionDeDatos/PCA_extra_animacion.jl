@@ -45,10 +45,10 @@ function GetProbd(path_read)
     return dataProbd
 end
 
-path_read = "C:\\Users\\Propietario\\Desktop\\ib\\5-Maestría\\GenData-PCA-UMAP\\Datos\\Datos_PCA2"
+path_read = "C:\\Users\\Propietario\\Desktop\\ib\\Tesis_V1\\Proyecto_Tesis\\1-GeneracionDeDatos\\Datos_Final\\datos_PCA"
 
 dataSignals = GetSignals(path_read)
-dataProbd = GetProbd(path_read)
+# dataProbd = GetProbd(path_read)
 
 #------------------------------------------------------------------------------------------
 # Funcion que centra los datos
@@ -113,7 +113,7 @@ end
 # Modelos reducidos de las señales y distribuciones de probabilidad
 
 reduced_data_Signals, pca_model_signals = PCA_Data(dataSignals)
-reduced_data_Probd, pca_model_probd = PCA_Data(dataProbd)
+# reduced_data_Probd, pca_model_probd = PCA_Data(dataProbd)
 
 df_PCA_Signals = DataFrame(
 		pc1 = reduced_data_Signals[1, :],
@@ -128,6 +128,29 @@ df_PCA_Probd = DataFrame(
     σs = column_σs,
     lcm = column_lcm,
 )
+
+#------------------------------------------------------------------------------------------
+# Tratemos de buscar un conjunto de señales
+find_rows_sigma1 = findall(x -> x == 1, df_PCA_Signals.σs)
+xs1 = df_PCA_Signals.pc1[find_rows_sigma1][1:2:100]
+ys1 = df_PCA_Signals.pc2[find_rows_sigma1][1:2:100]
+
+plot_lcms_S = @df df_PCA_Signals StatsPlots.scatter(
+    :pc1,
+    :pc2,
+    marker = (0.2,5),
+    xaxis = (title = "PC1"),
+    yaxis = (title = "PC2"),
+    xlabel = "PC1",
+    ylabel = "PC2",
+    labels = false,  # Use the modified labels
+    title = "PCA para S(t)",
+)
+
+scatter!(plot_lcms_S, xs1, ys1, label = "σ = 1", color = "red", markersize=5,legend=:best, tickfontsize=11, labelfontsize=13, legendfontsize=8, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10, right_margin=5mm)
+
+savefig("PCA_SignalsSigma1_V2.pdf")
+savefig("PCA_SignalsSigma1_V2.png")
 
 #------------------------------------------------------------------------------------------
 
