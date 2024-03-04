@@ -1,0 +1,1 @@
+Esta carpeta tiene los programas de exploración de hiperparámetros de una NODE que fue realizado únicamente con 5 señales
