@@ -19,34 +19,33 @@ using CUDA
 using Random
 
 ############################################################################################################################################################################
-# Traemos los mismos datos de los parametros utilizados para generar los datos, deberiamos hacer una función grande en la proxima función que genere los datos donde les pasamos
-# Todos estos parámetros desde otro programa, como ahora generamos pocos datos me quedo con esto
-# Esta exploración fue realizada con datos generados con una menor resolución tanto en lc como en t, es por estos que estos parámetros son distintos a los de los otros programas
+# Traemos los mismos datos de los parametros utilizados para generar los datos de otro programa
 
-###################################################ACORDARSE DE ESTO#################################################################
-# Parámetros fijos
-# Lo que dejamos constante es el número de compartimientos, el rango de tamaños de correlación lc, el tiempo de simulación final y el muestreo de timepos
-N = 2000
-time_sample_lenght = 100
+include("C:\\Users\\Propietario\\Desktop\\ib\\Tesis_V1\\Proyecto_Tesis\\1-GeneracionDeDatos\\Parametros.jl")
 
-# Rango de tamaños de compartimientos en μm
-l0 = 0.01
-lf = 50
+# # Parámetros fijos
+# # Lo que dejamos constante es el número de compartimientos, el rango de tamaños de correlación lc, el tiempo de simulación final y el muestreo de timepos
+# N = 2000
+# time_sample_lenght = 100
 
-lcs = Float32.(collect(range(l0, lf, length = N)))
+# # Rango de tamaños de compartimientos en μm
+# l0 = 0.01
+# lf = 50
 
-# Tiempo final de simulación en s
-tf = 1
+# lcs = Float32.(collect(range(l0, lf, length = N)))
 
-# Ahora generamos los datos para eso necesitamos hacer el sampling de los lc y los t
-lc = range(l0, lf, length = N)
-t = range(0, tf, length = time_sample_lenght)
+# # Tiempo final de simulación en s
+# tf = 1
 
-# Parametros que se varian
+# # Ahora generamos los datos para eso necesitamos hacer el sampling de los lc y los t
+# lc = range(l0, lf, length = N)
+# t = range(0, tf, length = time_sample_lenght)
 
-# Rango de tamaños medios de correlación en μm
-lcms = 0.5:0.01:6
-σs = 0.01:0.01:1
+# # Parametros que se varian
+
+# # Rango de tamaños medios de correlación en μm
+# lcms = 0.5:0.01:6
+# σs = 0.01:0.01:1
 
 ##########################################################################################
 
