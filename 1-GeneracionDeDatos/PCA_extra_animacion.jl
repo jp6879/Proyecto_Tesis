@@ -130,6 +130,40 @@ df_PCA_Probd = DataFrame(
 )
 
 #------------------------------------------------------------------------------------------
+# Vamos a seleccionar algunos σ, de estos vamos a samplear algunos valores de lcm en una tira de valores y así hasta tener 80 señales
+# que representen aproximadamente bien el espacio de parámetros
+sampled_sigmas = [0.01, 0.05, 0.1, 0.2, 0.3, 0.4 ,0.5, 0.6, 0.7, 0.8, 0.9, 1]
+
+rangos = []
+
+for σ in sampled_sigmas
+    find_rows = findall(x -> x == σ, df_PCA_Signals.σs)[1:25:250]
+    push!(rangos, find_rows)
+end
+
+println(length(rangos[1][:]))
+
+rangos = vcat(rangos...)
+
+
+xs = df_PCA_Signals.pc1[rangos]
+ys = df_PCA_Signals.pc2[rangos]
+
+plot_lcms_S = @df df_PCA_Signals StatsPlots.scatter(
+    :pc1,
+    :pc2,
+    marker = (0.2,5),
+    xaxis = (title = "PC1"),
+    yaxis = (title = "PC2"),
+    xlabel = "PC1",
+    ylabel = "PC2",
+    labels = false,  # Use the modified labels
+    title = "PCA para S(t)",
+)
+
+scatter!(plot_lcms_S, xs, ys, label = false, color = "red", markersize=5,legend=:best, tickfontsize=11, labelfontsize=13, legendfontsize=8, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10, right_margin=5mm)
+savefig("PCA_RepSignals.png")
+#------------------------------------------------------------------------------------------
 # Tratemos de buscar un conjunto de señales
 find_rows_sigma1 = findall(x -> x == 1, df_PCA_Signals.σs)
 xs1 = df_PCA_Signals.pc1[find_rows_sigma1][1:2:100]
