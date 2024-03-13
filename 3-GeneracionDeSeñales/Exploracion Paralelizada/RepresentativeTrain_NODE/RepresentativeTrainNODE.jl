@@ -9,7 +9,7 @@ using ComponentArrays, Optimization, OptimizationOptimJL, OptimizationFlux
 using Interpolations
 using OrdinaryDiffEq
 using IterTools: ncycle
-
+using Plots
 ###################################################################################
 # Parámetros fijos
 # Lo que dejamos constante es el número de compartimientos, el rango de tamaños de correlación lc, el tiempo de simulación final y el muestreo de tiempos
@@ -34,11 +34,13 @@ t_long = collect(range(0.1, 1, length = 100))
     
 # Vamos a tomar un subconjunto de t para hacer el entrenamiento de la NODE para agilizar los tiempos de entrenamiento
 muestreo_corto = 20 # Cada cuantos tiempos tomamos un timepo para entrenar la NODE
-muestreo_largo = 2
+muestreo_largo = 4
 t_short = t_short[1:muestreo_corto:end]
 t_long = t_long[1:muestreo_largo:end]
     
 t = vcat(t_short, t_long)
+
+t[60]
 
 path_read = "C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/1-GeneracionDeDatos/Datos_Final/datos_PCA"
 # path_read = "/home/juan.morales/datos_PCA"
@@ -48,16 +50,16 @@ path_read = "C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/1-Generacio
 lcms = 0.5:0.01:6
 sigmas = 0.01:0.01:1
 
-# sampled_sigmas = [0.01, 0.05, 0.1, 0.2, 0.3, 0.4 ,0.5, 0.6, 0.7, 0.8, 0.9, 1]
-# lcm_range = 1:25:250
-# Signals_rep, Signals_rep_derivadas, column_lcm_rep, column_sigmas_rep = Get_Signals_Data_Training(path_read, lcms, sigmas, sampled_sigmas, lcm_range, muestreo_corto, muestreo_largo, t)
+sampled_sigmas = [0.01, 0.05, 0.1, 0.2, 0.3, 0.4 ,0.5, 0.6, 0.7, 0.8, 0.9, 1]
+lcm_range = 1:25:250
+Signals_rep, Signals_rep_derivadas, column_lcm_rep, column_sigmas_rep = Get_Signals_Data_Training(path_read, lcms, sigmas, sampled_sigmas, lcm_range, muestreo_corto, muestreo_largo, t)
 
-# pl = plot(t, Signals_rep[1,:], label = "lcm = $(column_lcm_rep[1]) sigma = $(column_sigmas_rep[1])")
-# for i in 2:size(Signals_rep)[1]
-#     plot!(pl, t, Signals_rep[i,:], label = false)
-# end
+pl = scatter(t, Signals_rep[1,:], label = "lcm = $(column_lcm_rep[1]) sigma = $(column_sigmas_rep[1])")
+for i in 2:size(Signals_rep)[1]
+    scatter!(pl, t, Signals_rep[i,:], label = false)
+end
 
-# pl
+pl
 
 ###################################################################################
 # Vamos a hacer una función que nos permita calcular las derivadas de las señales
