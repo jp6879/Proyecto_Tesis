@@ -1,0 +1,2 @@
+ID,Arquitectura,Activación,Optimizador,Batch_Size,Loss_Final_Entrenamiento,Loss_Final_Predicción
+28,"[2, 32, 64, 16, 1]",relu,RMSProp,60,0.09630079161311095,0.38491526034020973
