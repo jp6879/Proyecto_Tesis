@@ -255,25 +255,21 @@ end
 function main()
     # Arquitecturas que vamos a utilizar
     architectures = [
-        # [[2, 8, 1], relu], # Una capa oculta
-        # [[2, 8, 1], tanh], # Misma con activación tanh
-        # [[2, 8, 1], swish], # Misma con activación swish
+        [[2, 16, 16, 1], relu], # Dos capas ocultas
+        [[2, 16, 16, 1], tanh], # Misma con activación tanh
+        [[2, 16, 16, 1], swish], # Misma con activación swish
         
-        # [[2, 16, 16, 1], relu], # Dos capas ocultas
-        # [[2, 16, 16, 1], tanh], # Misma con activación tanh
-        # [[2, 16, 16, 1], swish], # Misma con activación swish
-        
-        # [[2, 32, 64, 16, 1], relu], # Tres capas ocultas
-        # [[2, 32, 64, 16, 1], tanh], # Misma con activación tanh
-        # [[2, 32, 64, 16, 1], swish], # Misma con activación swish
+        [[2, 32, 64, 16, 1], relu], # Tres capas ocultas
+        [[2, 32, 64, 16, 1], tanh], # Misma con activación tanh
+        [[2, 32, 64, 16, 1], swish], # Misma con activación swish
 
-        # [[2, 128, 64, 16, 1], relu], # Tres capas ocultas con mas neuronas
-        # [[2, 128, 64, 16, 1], tanh], # Misma con activación tanh
-        # [[2, 128, 64, 16, 1], swish], # Misma con activación swish
+        [[2, 128, 64, 16, 1], relu], # Tres capas ocultas con mas neuronas
+        [[2, 128, 64, 16, 1], tanh], # Misma con activación tanh
+        [[2, 128, 64, 16, 1], swish], # Misma con activación swish
         
-        # [[2, 64, 128, 64, 32, 16, 1], relu], # Cinco capas ocultas
+        [[2, 64, 128, 64, 32, 16, 1], relu], # Cinco capas ocultas
         [[2, 64, 128, 64, 32, 16, 1], tanh], # Misma con activación tanh
-        # [[2, 64, 128, 64, 32, 16, 1], swish], # Misma con activación swish
+        [[2, 64, 128, 64, 32, 16, 1], swish], # Misma con activación swish
         ]
 
     # Optimizadores que vamos a utilizar

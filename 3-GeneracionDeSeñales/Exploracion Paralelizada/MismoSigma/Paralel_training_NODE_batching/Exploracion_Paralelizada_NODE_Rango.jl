@@ -51,7 +51,6 @@ sigmas = 0.01:0.01:1
 ###################################################################################
 
 # Función para leer las señales
-
 function GetSignals(path_read)
     dataSignals = CSV.read(path_read * "/dataSignals.csv", DataFrame)
     dataSignals = Matrix(dataSignals)

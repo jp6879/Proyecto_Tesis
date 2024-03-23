@@ -17,7 +17,7 @@ using Interpolations
 using OrdinaryDiffEq
 using IterTools: ncycle
 using Measures
-include("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/Exploracion Paralelizada/Representativos/Representative_mini_trainingNODE/Arquitectura12/UtilsRepresentative.jl")
+include("C:\\Users\\Propietario\\Desktop\\ib\\Tesis_V1\\Proyecto_Tesis\\3-GeneracionDeSeñales\\Exploracion Paralelizada\\Representativos\\Model1_Representative_trainingNODE\\Arquitectura67\\UtilsRepresentative.jl")
 
 ##############################################################################################
 # Parámetros fijos
@@ -87,7 +87,7 @@ t_long = collect(range(0.1, 1, length = 100))
 muestreo_corto = 20 # Cada cuantos tiempos tomamos un timepo para entrenar la NODE
 muestreo_largo = 4
 
-# Esto da 75 tiempos 50 puntos desde 0 a 0.1 y 25 puntos desde 0.1 a 1
+# Esto da 100 tiempos 50 puntos desde 0 a 0.1 y 25 puntos desde 0.1 a 1
 t_short = t_short[1:muestreo_corto:end]
 t_long = t_long[1:muestreo_largo:end]
 
@@ -95,8 +95,8 @@ t = vcat(t_short, t_long)
 
 # Tomamos 6 sigmas y 10 tamaños de compartimientos para cada sigma o sea 60 señales
 sampled_sigmas = [0.01, 0.2, 0.4, 0.6, 0.8, 1]
-lcm_range = 1:25:250
-sampled_lcms = collect(lcs[lcm_range])
+lcm_range = 1:25:125
+
 # Obtenemos las señales representativas para un conjunto de sigmas y lcms
 Signals_rep, Signals_rep_derivadas, column_lcm_rep, column_sigmas_rep = Get_Signals_Data_Training(path_read, lcms, sigmas, sampled_sigmas, lcm_range, muestreo_corto, muestreo_largo, t)
 
@@ -105,7 +105,7 @@ Signals_rep, Signals_rep_derivadas, column_lcm_rep, column_sigmas_rep = Get_Sign
 idx_forecast = 61
 
 # Definimos el tamaño del batch
-batch_size = 50
+batch_size = 30
 
 # Tiempos de entrenamiento y de predicción
 tforecast = t[idx_forecast:end]
@@ -117,9 +117,8 @@ Signals_valid = Signals_rep[:,idx_forecast:end]
 
 # Derivadas de las señales de entrenamiento y de predicción
 Signals_derivadas_train = Signals_rep_derivadas[1:idx_forecast-1,:]
-# Signals_derivadas_valid = Signals_rep_derivadas[idx_forecast:end,:]
+Signals_derivadas_valid = Signals_rep_derivadas[idx_forecast:end,:]
 extra_parameters = Signals_derivadas_train
-
 
 # Todas las señales tienen la misma condición inicial U0 = 1
 U0 = ones32(size(Signals_rep)[1])
@@ -127,22 +126,24 @@ U0 = ones32(size(Signals_rep)[1])
 # Vamos a crear el dataloader para el entrenamiento de la NODE con mini-batchs
 train_loader = Flux.Data.DataLoader((Signals_train, ttrain), batchsize = batch_size)
 
-# ID    Arquitectura                    Activación      Optimizador     Batch_Size  Loss_Final_Entrenamiento        Loss_Final_Predicción
-# 12    "[2, 64, 128, 64, 32, 16, 1]"   swish              AdamW        50              0.04708391170099906          0.01640288417780932
+# ID,       Arquitectura,                           Activación,     Optimizador,        Batch_Size,         Loss_Final_Entrenamiento,       Loss_Final_Predicción
+# 67,       "[2, 128, 256, 32, 64, 32, 16, 8, 1]"   ,tanh,              RMSProp,            30,             0.08671195258056884,            0.0268274010634478
 
-nn = Chain(Dense(2,64, swish),
-            Dense(64,128, swish),
-            Dense(128,64, swish),
-            Dense(64,32, swish),
-            Dense(32,16, swish),
-            Dense(16, 1)
+nn = Chain(Dense(2, 128, tanh),
+            Dense(128, 256, tanh),
+            Dense(256, 32, tanh),
+            Dense(32, 64, tanh),
+            Dense(64, 32, tanh),
+            Dense(32, 16, tanh),
+            Dense(16, 8, tanh),
+            Dense(8, 1)
             )
 
 # Tomamos un learning rate de 0.001
-η = 1e-4
+η = 1e-3
 
 # Vamos a tomar 30 épocas para entrenar todas las arquitecturas
-epochs = 1000
+epochs = 1
 
 # Parametrizar indices para poder acceder a los parametros extras de la red neuronal
 f(x,p) = round(Int, x * (length(p) - 1)) + 1
@@ -150,14 +151,13 @@ f(x,p) = round(Int, x * (length(p) - 1)) + 1
 p, re = Flux.destructure(nn) # Para entrenar la red tenemos que extraer los parametros de la red neuronal en su condicion inicial
 
 # Leemos parámetros de la arquitectura 17
-θ = CSV.read("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/Exploracion Paralelizada/Representativos/Representative_mini_trainingNODE/Parameters/12_Parameters.csv", DataFrame)
+θ = CSV.read("C:\\Users\\Propietario\\Desktop\\ib\\Tesis_V1\\Proyecto_Tesis\\3-GeneracionDeSeñales\\Exploracion Paralelizada\\Representativos\\Model1_Representative_trainingNODE\\Parameters\\67_Parameters.csv", DataFrame)
 p = Float32.(θ[:,1])
-
 
 ##############################################################################################
 
 # Optimizardor
-opt = AdamW(η)
+opt = RMSProp(η)
 
 # Tiempo sobre el cual resolver la ODE
 tspan = (0f0, 1f0)
@@ -242,13 +242,10 @@ end
 # Entrenamos la red neuronal
 Flux.train!(loss_node, Flux.params(p,U0), ncycle(train_loader, epochs), opt, cb = callback)
 
-loss_node(Signals_train, ttrain)
-loss_node(Signals_valid, tforecast)
-
 ##############################################################################################
 # Vamos a leer los loss del entrenamiento que ya teníamos
 # 
-read_loss_path = "C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/Exploracion Paralelizada/Representativos/Representative_mini_trainingNODE/Losses/12_losses.csv"
+read_loss_path = "C:\\Users\\Propietario\\Desktop\\ib\\Tesis_V1\\Proyecto_Tesis\\3-GeneracionDeSeñales\\Exploracion Paralelizada\\Representativos\\Model1_Representative_trainingNODE\\Losses\\67_losses.csv"
 df_loss = CSV.read(read_loss_path, DataFrame)
 
 Loss_Entrenamiento = vcat(df_loss[!,"Loss_Entrenamiento"], loss)
@@ -260,7 +257,7 @@ println("Loss Predicción: ", Loss_Prediccion[end])
 plot(Loss_Entrenamiento, label = "Loss entrenamiento", xlabel = "Épocas", ylabel = "Loss", lw = 2,tickfontsize=12, labelfontsize=15, legendfontsize=15, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10, rightmargin = 5mm)
 plot!(Loss_Prediccion, label = "Loss predicción", lw = 2, color = :red)
 
-# savefig("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/Exploracion Paralelizada/Final_trainingNODE/Arquitectura-13/13_losses.pdf")
+# savefig("C:\\Users\\Propietario\\Desktop\\ib\\Tesis_V1\\Proyecto_Tesis\\3-GeneracionDeSeñales\\Exploracion Paralelizada\\Final_trainingNODE\\Arquitectura-13\\13_losses.pdf")
 
 # ##############################################################################################
 # # Vamos a hacer un plot de las señales de entrenamiento y sus predicciones
@@ -276,21 +273,33 @@ plot!(ttrain, Predict_Singals(U0[1], Signals_derivadas_train[:,1], ttrain), colo
 plot!(tforecast, Predict_Singals(U0[1], Signals_derivadas_train[:,1], tforecast), color = :orange, label = "Predicción", markershape = :utriangle, ls = :dash, lw = 2)
 plot!(constant, linspace, label = false, lw = 2, ls = :dash, color = :gray)
 
+# savefig("C:\\Users\\Propietario\\Desktop\\ib\\Tesis_V1\\Proyecto_Tesis\\3-GeneracionDeSeñales\\Exploracion Paralelizada\\Final_trainingNODE\\Arquitectura-13\\Arquitectura_13_WP_Signal_1.pdf")
+# savefig("C:\\Users\\Propietario\\Desktop\\ib\\Tesis_V1\\Proyecto_Tesis\\3-GeneracionDeSeñales\\Exploracion Paralelizada\\Final_trainingNODE\\Arquitectura-13\\Arquitectura_13_WP_Signal_1.png")
+
 plot(vcat(t_short,t_long), Signals_rep[idx_mitad,:], label = "Señal σ = $(column_sigmas_rep[idx_mitad]) lcm = $(column_lcm_rep[idx_mitad])", xlabel = L"t", ylabel = L"S(t)", title = "Predicción de señales", lw = 2, color = :blue, markershape = :circle, tickfontsize=12, labelfontsize=15, legendfontsize=11, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10)
 plot!(ttrain, Predict_Singals(U0[idx_mitad], Signals_derivadas_train[:,idx_mitad], ttrain), color = :red, label = "Entrenamiento", markershape = :star6, ls = :dash, lw = 2)
 plot!(tforecast, Predict_Singals(U0[idx_mitad], Signals_derivadas_train[:,idx_mitad], tforecast), color = :orange, label = "Predicción", markershape = :utriangle, ls = :dash, lw = 2)
 
+# savefig("C:\\Users\\Propietario\\Desktop\\ib\\Tesis_V1\\Proyecto_Tesis\\3-GeneracionDeSeñales\\Exploracion Paralelizada\\Final_trainingNODE\\Arquitectura-13\\Arquitectura_13_WP_Signal_$(idx_mitad).pdf")
+# savefig("C:\\Users\\Propietario\\Desktop\\ib\\Tesis_V1\\Proyecto_Tesis\\3-GeneracionDeSeñales\\Exploracion Paralelizada\\Final_trainingNODE\\Arquitectura-13\\Arquitectura_13_WP_Signal_$(idx_mitad).png")
+
 plot(vcat(t_short,t_long), Signals_rep[end,:], label = "Señal σ = $(column_sigmas_rep[end]) lcm = $(column_lcm_rep[end])", xlabel = L"t", ylabel = L"S(t)", title = "Predicción de señales", lw = 2, color = :blue, markershape = :circle, tickfontsize=12, labelfontsize=15, legendfontsize=11, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10)
 plot!(ttrain, Predict_Singals(U0[end], Signals_derivadas_train[:,end], ttrain), color = :red, label = "Entrenamiento", markershape = :star6, ls = :dash, lw = 2)
 plot!(tforecast, Predict_Singals(U0[end], Signals_derivadas_train[:,end], tforecast), color = :orange, label = "Predicción", markershape = :utriangle, ls = :dash, lw = 2)
+
+# savefig("C:\\Users\\Propietario\\Desktop\\ib\\Tesis_V1\\Proyecto_Tesis\\3-GeneracionDeSeñales\\Exploracion Paralelizada\\Final_trainingNODE\\Arquitectura-13\\Arquitectura_13_WP_Signal_$(size(Signals_test)[1]).pdf")
+# savefig("C:\\Users\\Propietario\\Desktop\\ib\\Tesis_V1\\Proyecto_Tesis\\3-GeneracionDeSeñales\\Exploracion Paralelizada\\Final_trainingNODE\\Arquitectura-13\\Arquitectura_13_WP_Signal_$(size(Signals_test)[1]).png")
 
 plot_predictions = plot(ttrain, Predict_Singals(U0[1], Signals_derivadas_train[:,1], ttrain), label = "Entrenamiento", xlabel = L"t", ylabel = L"S(t)", title = "Predicción de señales", lw = 2, color = :red, markershape = :circle, tickfontsize=12, labelfontsize=15, legendfontsize=11, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10)
 plot!(tforecast, Predict_Singals(U0[1], Signals_derivadas_train[:,1], tforecast), label = "Predicción", lw = 2, color = :orange, markershape = :utriangle, ls = :dash)
 
 for i in 2:2:size(Signals_rep)[1]
     # plot!(plot_signals,vcat(t_short,t_long), Signals_test[i,:], label = false, xlabel = L"t", ylabel = L"S(t)", title = "Predicción de señales", lw = 2, color = :blue, markershape = :circle, tickfontsize=12, labelfontsize=15, legendfontsize=5, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10)
-    plot!(plot_predictions, ttrain, Predict_Singals(U0[i], Signals_derivadas_train[:,i], ttrain), color = :red, label = false, markershape = :star6, ls = :dash, lw = 2)
-    plot!(plot_predictions, tforecast, Predict_Singals(U0[i], Signals_derivadas_train[:,i], tforecast), color = :orange, label = false, markershape = :utriangle, ls = :dash, lw = 2)
+    plot!(ttrain, Predict_Singals(U0[i], Signals_derivadas_train[:,i], ttrain), color = :red, label = false, markershape = :star6, ls = :dash, lw = 2)
+    plot!(tforecast, Predict_Singals(U0[i], Signals_derivadas_train[:,i], tforecast), color = :orange, label = false, markershape = :utriangle, ls = :dash, lw = 2)
 end
 
 plot_predictions
+# savefig("C:\\Users\\Propietario\\Desktop\\ib\\Tesis_V1\\Proyecto_Tesis\\3-GeneracionDeSeñales\\Exploracion Paralelizada\\Final_trainingNODE\\Arquitectura-13\\Arquitectura_13_WP_Predictions.pdf")
+# savefig("C:\\Users\\Propietario\\Desktop\\ib\\Tesis_V1\\Proyecto_Tesis\\3-GeneracionDeSeñales\\Exploracion Paralelizada\\Final_trainingNODE\\Arquitectura-13\\Arquitectura_13_WP_Predictions.png")
+

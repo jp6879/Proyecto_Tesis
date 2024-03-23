@@ -6,12 +6,12 @@ using CSV
 using Statistics
 using Measures
 using StatsPlots
-include("C:\\Users\\Propietario\\Desktop\\ib\\Tesis_V1\\Proyecto_Tesis\\3-GeneracionDeSeñales\\Exploracion Paralelizada\\Representative_mini_trainingNODE\\Arquitectura12\\UtilsRepresentative.jl")
+include("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/Exploracion Paralelizada/Representativos/UtilsRepresentative.jl")
 #------------------------------------------------------------------------------------------
 # Parámetros fijos
 
 # Lo que dejamos constante es el número de compartimientos, el rango de tamaños de correlación lc, el tiempo de simulación final y el muestreo de timepos
-N = 1500
+N = 5000
 time_sample_lenght = 100
 
 # Rango de tamaños de compartimientos en μm
@@ -123,28 +123,80 @@ df_PCA_Signals = DataFrame(
 	    lcm = column_lcm,
 	)
 
+plot_lcms_S = @df df_PCA_Signals StatsPlots.scatter(
+    :pc1,
+    :pc2,
+    group = :σs,
+    marker = (0.2,5),
+    xaxis = (title = "PC1"),
+    yaxis = (title = "PC2"),
+    xlabel = "PC1",
+    ylabel = "PC2",
+    labels = false,  # Use the modified labels
+    title = "PCA para S(t) distingue σ",
+)
+
+plot_lcms_S = @df df_PCA_Signals StatsPlots.scatter(
+    :pc1,
+    :pc2,
+    group = :lcm,
+    marker = (0.2,5),
+    xaxis = (title = "PC1"),
+    yaxis = (title = "PC2"),
+    xlabel = "PC1",
+    ylabel = "PC2",
+    labels = false,  # Use the modified labels
+    title = "PCA para S(t) distingue lcm",
+)
+
+
 #------------------------------------------------------------------------------------------
 # Vamos a seleccionar algunos σ, de estos vamos a samplear algunos valores de lcm en una tira de valores y así hasta tener 80 señales
 # que representen aproximadamente bien el espacio de parámetros
 # sampled_sigmas = [0.01, 0.05, 0.1, 0.2, 0.3, 0.4 ,0.5, 0.6, 0.7, 0.8, 0.9, 1]
 sampled_sigmas = [0.01, 0.2, 0.4, 0.6, 0.8, 1]
-lcm_range = 1:25:125
+sampled_lcm = collect(lcms[1:25:250])
+# collect(lcms)
+# lcm_range = 1:1:275
+# println(column_lcm[lcm_range])
+println(sampled_lcm)
+
+
 # lcm_range = 126:25:250
 # lcm_range = 1:25:250
-rangos = []
+# rangos = []
+# lcms_explorados = []
+
+find_rows_sigma = []
+find_rows_lcm = []
+selected_rows = []
 
 for σ in sampled_sigmas
-    find_rows = findall(x -> x == σ, df_PCA_Signals.σs)[lcm_range]
-    push!(rangos, find_rows)
+    push!(find_rows_sigma, findall(x -> x == σ, df_PCA_Signals.σs))
 end
 
-println(length(rangos[1][:]))
+for lcm in sampled_lcm
+    push!(find_rows_lcm, findall(x -> x == lcm, df_PCA_Signals.lcm))
+end
+selected_rows = intersect(vcat(find_rows_sigma...), vcat(find_rows_lcm...))
 
-rangos = vcat(rangos...)
+# for σ in sampled_sigmas
+#     find_rows = findall(x -> x == σ, df_PCA_Signals.σs)
+#     find_lcms = df_PCA_Signals.lcm[find_rows]
+#     println(length(find_rows))
+#     println(find_rows)
+#     push!(rangos, find_rows)
+#     push!(lcms_explorados, find_lcms)
+# end
+# lcms_explorados
+# rangos
 
+# println(length(rangos[1][:]))
 
-xs = df_PCA_Signals.pc1[rangos]
-ys = df_PCA_Signals.pc2[rangos]
+# rangos = vcat(rangos...)
+
+xs = df_PCA_Signals.pc1[selected_rows]
+ys = df_PCA_Signals.pc2[selected_rows]
 
 plot_lcms_S = @df df_PCA_Signals StatsPlots.scatter(
     :pc1,
@@ -159,7 +211,7 @@ plot_lcms_S = @df df_PCA_Signals StatsPlots.scatter(
 )
 
 scatter!(plot_lcms_S, xs, ys, label = false, color = "red", markersize=5,legend=:best, tickfontsize=11, labelfontsize=13, legendfontsize=8, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10, right_margin=5mm)
-
+savefig("PCA_SignalsRepresent_01.png")
 #------------------------------------------------------------------------------------------
 
 t_short = collect(range(0, 0.1, length = 1000))
