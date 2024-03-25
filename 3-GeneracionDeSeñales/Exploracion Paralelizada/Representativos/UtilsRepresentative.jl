@@ -70,3 +70,33 @@ function Get_Signals_Data_Training(path_read, lcms, sigmas, sampled_sigmas, lcm_
     column_sigmas_rep = column_sigmas[indexes]
     return Signals_rep, Signals_rep_derivadas, column_lcm_rep, column_sigmas_rep
 end
+
+# Vamos a hacer una función que nos permita calcular las derivadas de las señales
+# Para esto vamos a usar diferencias finitas centradas
+# La función recibe como argumentos el arreglo de señales y el arreglo de tiempos
+# La función regresa un arreglo de derivadas de las señales
+
+function derivate_signals(t,signal)
+    # Calcula el tamaño de la ventana
+    w = 1
+    # Calcula el tamaño de la señal
+    n = length(signal)
+    # Inicializa el arreglo de derivadas
+    derivadas = zeros(n)
+    for i in 1:n
+        # Encuentra los índices de la ventana
+        inicio = max(1, i-w)
+        final = min(n, i+w)
+        # Utiliza diferencias finitas centradas si es posible
+        if inicio != i && final != i
+            derivadas[i] = (signal[final] - signal[inicio]) / (t[final] - t[inicio])
+        elseif inicio == i
+            # Diferencia hacia adelante si estamos en el comienzo del arreglo
+            derivadas[i] = (signal[i+1] - signal[i]) / (t[i+1] - t[i])
+        else
+            # Diferencia hacia atrás si estamos al final del arreglo
+            derivadas[i] = (signal[i] - signal[i-1]) / (t[i] - t[i-1])
+        end
+    end
+    return derivadas
+end
