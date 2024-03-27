@@ -17,7 +17,7 @@ using Interpolations
 using OrdinaryDiffEq
 using IterTools: ncycle
 using Measures
-include("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/Exploracion Paralelizada/Representativos/Model1_Representative_trainingNODE/Arquitectura67/UtilsRepresentative.jl")
+include("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/Exploracion Paralelizada/Representativos/Model1_Representative_trainingNODE/Arquitectura61/UtilsRepresentative.jl")
 
 ##############################################################################################
 # Parámetros fijos
@@ -126,16 +126,16 @@ U0 = ones32(size(Signals_rep)[1])
 # Vamos a crear el dataloader para el entrenamiento de la NODE con mini-batchs
 train_loader = Flux.Data.DataLoader((Signals_train, ttrain), batchsize = batch_size)
 
-# ID,       Arquitectura,                           Activación,     Optimizador,        Batch_Size,         Loss_Final_Entrenamiento,       Loss_Final_Predicción
-# 67,       "[2, 128, 256, 32, 64, 32, 16, 8, 1]"   ,tanh,              RMSProp,            30,             0.08671195258056884,            0.0268274010634478
+# ID    ,   Arquitectura,                           Activación,     Optimizador,        Batch_Size,            Loss_Final_Entrenamiento,        Loss_Final_Predicción
+# 61    ,   "[2, 128, 256, 32, 64, 32, 16, 8, 1]",      relu        ,AdamW,                 30,                 0.0334288864436486,             0.044980187121166276
 
-nn = Chain(Dense(2, 128, tanh),
-            Dense(128, 256, tanh),
-            Dense(256, 32, tanh),
-            Dense(32, 64, tanh),
-            Dense(64, 32, tanh),
-            Dense(32, 16, tanh),
-            Dense(16, 8, tanh),
+nn = Chain(Dense(2, 128, relu),
+            Dense(128, 256, relu),
+            Dense(256, 32, relu),
+            Dense(32, 64, relu),
+            Dense(64, 32, relu),
+            Dense(32, 16, relu),
+            Dense(16, 8, relu),
             Dense(8, 1)
             )
 
@@ -151,7 +151,7 @@ f(x,p) = round(Int, x * (length(p) - 1)) + 1
 p, re = Flux.destructure(nn) # Para entrenar la red tenemos que extraer los parametros de la red neuronal en su condicion inicial
 
 # Leemos parámetros de la arquitectura 17
-θ = CSV.read("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/Exploracion Paralelizada/Representativos/Model1_Representative_trainingNODE/Parameters/67_Parameters.csv", DataFrame)
+θ = CSV.read("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/Exploracion Paralelizada/Representativos/Model1_Representative_trainingNODE/Parameters/61_Parameters.csv", DataFrame)
 p = Float32.(θ[:,1])
 
 ##############################################################################################
@@ -248,7 +248,7 @@ loss_node(Signals_valid, tforecast)
 ##############################################################################################
 # Vamos a leer los loss del entrenamiento que ya teníamos
 
-read_loss_path = "C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/Exploracion Paralelizada/Representativos/Model1_Representative_trainingNODE/Losses/67_losses.csv"
+read_loss_path = "C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/Exploracion Paralelizada/Representativos/Model1_Representative_trainingNODE/Losses/61_losses.csv"
 df_loss = CSV.read(read_loss_path, DataFrame)
 
 Loss_Entrenamiento = vcat(df_loss[!,"Loss_Entrenamiento"], loss)
@@ -260,7 +260,7 @@ println("Loss Predicción: ", Loss_Prediccion[end])
 plot(Loss_Entrenamiento, label = "Loss entrenamiento", xlabel = "Épocas", ylabel = "Loss", lw = 2,tickfontsize=12, labelfontsize=15, legendfontsize=15, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10, rightmargin = 5mm)
 plot!(Loss_Prediccion, label = "Loss predicción", lw = 2, color = :red)
 
-savefig("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/Exploracion Paralelizada/Representativos/Model1_Representative_trainingNODE/Arquitectura67/Loss_arquitectura67.png")
+savefig("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/Exploracion Paralelizada/Representativos/Model1_Representative_trainingNODE/Arquitectura61/Loss_arquitectura61.png")
 
 # ##############################################################################################
 # # Vamos a hacer un plot de las señales de entrenamiento y sus predicciones
@@ -276,19 +276,19 @@ plot!(ttrain, Predict_Singals(U0[1], Signals_derivadas_train[:,1], ttrain), colo
 plot!(tforecast, Predict_Singals(U0[1], Signals_derivadas_train[:,1], tforecast), color = :orange, label = "Predicción", markershape = :utriangle, ls = :dash, lw = 2)
 plot!(constant, linspace, label = false, lw = 2, ls = :dash, color = :gray)
 
-savefig("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/Exploracion Paralelizada/Representativos/Model1_Representative_trainingNODE/Arquitectura67/Signal1_arquitectura67.png")
+savefig("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/Exploracion Paralelizada/Representativos/Model1_Representative_trainingNODE/Arquitectura61/Signal1_arquitectura61.png")
 
 plot(vcat(t_short,t_long), Signals_rep[idx_mitad,:], label = "Señal σ = $(column_sigmas_rep[idx_mitad]) lcm = $(column_lcm_rep[idx_mitad])", xlabel = L"t", ylabel = L"S(t)", title = "Predicción de señales", lw = 2, color = :blue, markershape = :circle, tickfontsize=12, labelfontsize=15, legendfontsize=11, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10)
 plot!(ttrain, Predict_Singals(U0[idx_mitad], Signals_derivadas_train[:,idx_mitad], ttrain), color = :red, label = "Entrenamiento", markershape = :star6, ls = :dash, lw = 2)
 plot!(tforecast, Predict_Singals(U0[idx_mitad], Signals_derivadas_train[:,idx_mitad], tforecast), color = :orange, label = "Predicción", markershape = :utriangle, ls = :dash, lw = 2)
 
-savefig("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/Exploracion Paralelizada/Representativos/Model1_Representative_trainingNODE/Arquitectura67/SignalMitad_arquitectura67.png")
+savefig("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/Exploracion Paralelizada/Representativos/Model1_Representative_trainingNODE/Arquitectura61/SignalMitad_arquitectura61.png")
 
 plot(vcat(t_short,t_long), Signals_rep[end,:], label = "Señal σ = $(column_sigmas_rep[end]) lcm = $(column_lcm_rep[end])", xlabel = L"t", ylabel = L"S(t)", title = "Predicción de señales", lw = 2, color = :blue, markershape = :circle, tickfontsize=12, labelfontsize=15, legendfontsize=11, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10)
 plot!(ttrain, Predict_Singals(U0[end], Signals_derivadas_train[:,end], ttrain), color = :red, label = "Entrenamiento", markershape = :star6, ls = :dash, lw = 2)
 plot!(tforecast, Predict_Singals(U0[end], Signals_derivadas_train[:,end], tforecast), color = :orange, label = "Predicción", markershape = :utriangle, ls = :dash, lw = 2)
 
-savefig("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/Exploracion Paralelizada/Representativos/Model1_Representative_trainingNODE/Arquitectura67/SignalEnd_arquitectura67.png")
+savefig("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/Exploracion Paralelizada/Representativos/Model1_Representative_trainingNODE/Arquitectura61/SignalEnd_arquitectura61.png")
 
 # plot_predictions = plot(ttrain, Predict_Singals(U0[1], Signals_derivadas_train[:,1], ttrain), label = "Entrenamiento", xlabel = L"t", ylabel = L"S(t)", title = "Predicción de señales", lw = 2, color = :red, markershape = :circle, tickfontsize=12, labelfontsize=15, legendfontsize=11, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10)
 # plot!(tforecast, Predict_Singals(U0[1], Signals_derivadas_train[:,1], tforecast), label = "Predicción", lw = 2, color = :orange, markershape = :utriangle, ls = :dash)
@@ -306,4 +306,4 @@ end
 
 plot_predictions
 
-savefig("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/Exploracion Paralelizada/Representativos/Model1_Representative_trainingNODE/Arquitectura67/Señales_predict67.png")
+savefig("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/Exploracion Paralelizada/Representativos/Model1_Representative_trainingNODE/Arquitectura61/Señales_predict61.png")

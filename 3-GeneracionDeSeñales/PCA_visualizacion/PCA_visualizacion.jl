@@ -155,7 +155,7 @@ plot_lcms_S = @df df_PCA_Signals StatsPlots.scatter(
 # que representen aproximadamente bien el espacio de parámetros
 # sampled_sigmas = [0.01, 0.05, 0.1, 0.2, 0.3, 0.4 ,0.5, 0.6, 0.7, 0.8, 0.9, 1]
 sampled_sigmas = [0.01, 0.2, 0.4, 0.6, 0.8, 1]
-sampled_lcm = collect(lcms[1:25:250])
+sampled_lcm = collect(lcms[1:25:125])
 # collect(lcms)
 # lcm_range = 1:1:275
 # println(column_lcm[lcm_range])
@@ -211,7 +211,7 @@ plot_lcms_S = @df df_PCA_Signals StatsPlots.scatter(
 )
 
 scatter!(plot_lcms_S, xs, ys, label = false, color = "red", markersize=5,legend=:best, tickfontsize=11, labelfontsize=13, legendfontsize=8, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10, right_margin=5mm)
-savefig("PCA_SignalsRepresent_01.png")
+savefig("PCA_SignalsRepresent_M1.png")
 #------------------------------------------------------------------------------------------
 
 t_short = collect(range(0, 0.1, length = 1000))
