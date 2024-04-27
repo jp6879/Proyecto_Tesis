@@ -45,19 +45,21 @@ path_read = "/home/juan.morales/datos_PCA"
 
 # Parametros que se varian
 # Rango de tamaños medios de correlación en μm
-lcms = 0.5:0.01:6
-sigmas = 0.01:0.01:1
+# using Plots
+# lcms = 0.5:0.01:6
+# sigmas = 0.01:0.01:1
 
-# sampled_sigmas = [0.01, 0.05, 0.1, 0.2, 0.3, 0.4 ,0.5, 0.6, 0.7, 0.8, 0.9, 1]
-# lcm_range = 1:25:250
+# sampled_sigmas = [1]
+# lcm_range = 1:25:125
 # Signals_rep, Signals_rep_derivadas, column_lcm_rep, column_sigmas_rep = Get_Signals_Data_Training(path_read, lcms, sigmas, sampled_sigmas, lcm_range, muestreo_corto, muestreo_largo, t)
 
-# pl = plot(t, Signals_rep[1,:], label = "lcm = $(column_lcm_rep[1]) sigma = $(column_sigmas_rep[1])")
+# pl = scatter(t, Signals_rep[1,:], label = "lcm = $(column_lcm_rep[1]) sigma = $(column_sigmas_rep[1])")
 # for i in 2:size(Signals_rep)[1]
-#     plot!(pl, t, Signals_rep[i,:], label = false)
+#     scatter!(pl, t, Signals_rep[i,:], label = "lcm = $(column_lcm_rep[i]) sigma = $(column_sigmas_rep[i])")
 # end
 
 # pl
+
 
 ###################################################################################
 # Vamos a hacer una función que nos permita calcular las derivadas de las señales
@@ -199,7 +201,7 @@ function Train_Neural_ODE(nn, U0, extra_parameters ,num_epochs, train_loader, op
 
         prob = ODEProblem(dSdt, u0, tspan)
 
-        return Array(solve(prob, Tsit5(), dtmin=1e-9 , u0 = u0, p = p, saveat = time_batch, reltol = 1e-7, abstol = 1e-7)) # Regresa la solución de la ODE
+        return Array(solve(prob, Tsit5(), dtmin=1e-9 , u0 = u0, p = p, saveat = time_batch, reltol = 1e-5, abstol = 1e-5)) # Regresa la solución de la ODE
     end
 
     # Función que predice las señales para un conjunto de condiciones iniciales
@@ -254,34 +256,22 @@ end
 
 function main()
     # Arquitecturas que vamos a utilizar
-    architectures = [
-        [[2, 8, 1], relu], # Una capa oculta
-        [[2, 8, 1], tanh], # Misma con activación tanh
-        [[2, 8, 1], swish], # Misma con activación swish
-        
-        [[2, 16, 16, 1], relu], # Dos capas ocultas
-        [[2, 16, 16, 1], tanh], # Misma con activación tanh
-        [[2, 16, 16, 1], swish], # Misma con activación swish
-        
+    architectures = [   
         [[2, 32, 64, 16, 1], relu], # Tres capas ocultas
-        [[2, 32, 64, 16, 1], tanh], # Misma con activación tanh
+        [[2, 32, 64, 16, 1], tanh_fast], # Misma con activación tanh_fast
         [[2, 32, 64, 16, 1], swish], # Misma con activación swish
 
         [[2, 128, 64, 16, 1], relu], # Tres capas ocultas con mas neuronas
-        [[2, 128, 64, 16, 1], tanh], # Misma con activación tanh
+        [[2, 128, 64, 16, 1], tanh_fast], # Misma con activación tanh_fast
         [[2, 128, 64, 16, 1], swish], # Misma con activación swish
-        
-        [[2, 64, 128, 64, 32, 16, 1], relu], # Cinco capas ocultas
-        [[2, 64, 128, 64, 32, 16, 1], tanh], # Misma con activación tanh
-        [[2, 64, 128, 64, 32, 16, 1], swish], # Misma con activación swish
 
-        [[2, 128, 256, 32, 64, 32, 16, 8, 1], relu], # Siete capas ocultas
-        [[2, 128, 256, 32, 64, 32, 16, 8, 1], tanh], # Misma con activación tanh
-        [[2, 128, 256, 32, 64, 32, 16, 8, 1], swish], # Misma con activación swish
-        ]
+        [[2, 128, 64, 32, 16, 1], relu], # Cuatro capas ocultas con mas neuronas
+        [[2, 128, 64, 32, 16, 1], tanh_fast], # Misma con activación tanh_fast
+        [[2, 128, 64, 32, 16, 1], swish], # Misma con activación swish
+    ]
 
     # Optimizadores que vamos a utilizar
-    optimizers = [opt for opt in [AdamW, RMSProp]]
+    optimizers = [opt for opt in [AdamW]]
 
     # Numero de mini-batchs que vamos a utilizar 
     batchs_size = [30, 60] # En este caso cada bath es la mitda de una señal completa o la señal completa
@@ -314,8 +304,8 @@ function main()
     
     t = vcat(t_short, t_long)
 
-    # Tomamos 6 sigmas y 10 tamaños de compartimientos para cada sigma o sea 60 señales
-    sampled_sigmas = [0.01, 0.2, 0.4, 0.6, 0.8, 1]
+    # Tomamos 1 sigma y 10 tamaños de compartimientos para cada sigma o sea 60 señales
+    sampled_sigmas = [1]
     lcm_range = 1:25:125
     
     # Obtenemos las señales representativas para un conjunto de sigmas y lcms
@@ -353,8 +343,8 @@ function main()
     layers = architecture[1]
     activation = architecture[2]
 
-    if activation == tanh
-        activation_string = "tanh"
+    if activation == tanh_fast
+        activation_string = "tanh_fast"
     elseif activation == relu
         activation_string = "relu"
     elseif activation == swish
@@ -374,7 +364,7 @@ function main()
     nn = create_model(layers, activation)
     
     # Parámetro de penalización
-    lambd = 0.1
+    lambd = 1
 
     # Entrenamos una NODE con mini-batchs para cada arquitectura, optimizador y tamaño de mini-batch y guardamos el loss y los parametros de la red neuronal
     architecture_loss, theta, loss_forecast = Train_Neural_ODE(nn, U0, Signals_derivadas_train, epochs, train_loader, opt, eta, Signals_train, Signals_valid, ttrain, tforecast, lambd)

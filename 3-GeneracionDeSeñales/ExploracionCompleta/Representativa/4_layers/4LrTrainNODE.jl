@@ -48,17 +48,6 @@ path_read = "/home/juan.morales/datos_PCA"
 lcms = 0.5:0.01:6
 sigmas = 0.01:0.01:1
 
-# sampled_sigmas = [0.01, 0.05, 0.1, 0.2, 0.3, 0.4 ,0.5, 0.6, 0.7, 0.8, 0.9, 1]
-# lcm_range = 1:25:250
-# Signals_rep, Signals_rep_derivadas, column_lcm_rep, column_sigmas_rep = Get_Signals_Data_Training(path_read, lcms, sigmas, sampled_sigmas, lcm_range, muestreo_corto, muestreo_largo, t)
-
-# pl = plot(t, Signals_rep[1,:], label = "lcm = $(column_lcm_rep[1]) sigma = $(column_sigmas_rep[1])")
-# for i in 2:size(Signals_rep)[1]
-#     plot!(pl, t, Signals_rep[i,:], label = false)
-# end
-
-# pl
-
 ###################################################################################
 # Vamos a hacer una función que nos permita calcular las derivadas de las señales
 # Para esto vamos a usar diferencias finitas centradas
@@ -166,6 +155,27 @@ end
 
 ###################################################################################
 
+function get_signals_deriv_valid(tvalid, Signals_valid)
+    Signals_derivadas_valid = zeros(size(Signals_valid))
+
+    # Obtenemos las derivadas de las señales de validación
+    for i in 1:size(Signals_valid)[1]
+        Signals_derivadas_valid[i,:] = derivate_signals(tvalid,Signals_valid[i,:])
+    end
+
+    # La transponemos y la convertimos a Float32
+    Signals_derivadas_valid = Float32.(Matrix(Signals_derivadas_valid'))
+
+    # Normalizamos las derivadas
+    for i in 1:size(Signals_valid)[1]
+        Signals_derivadas_valid[:,i] = Signals_derivadas_valid[:,i] ./ maximum(abs.(Signals_derivadas_valid[:,i]))
+    end
+
+    return Signals_derivadas_valid
+end
+
+###################################################################################
+
 # Función que crea el modelo de la red neuronal que va a estar dentro de la ODE
 function create_model(layers::Vector{Int}, activation)
     activations = [activation for i in 1:length(layers) - 2]
@@ -175,14 +185,22 @@ end
 ###################################################################################
 
 # Función que entrena la NODE con mini-batchs
-function Train_Neural_ODE(nn, U0, extra_parameters ,num_epochs, train_loader, opt, eta, Signals, Signals_forecast, t, tforecast, lamb = 1.0)
+function Train_Neural_ODE(nn, U0, extra_parameters, extra_parameters_valid ,num_epochs, train_loader, opt, eta, Signals, Signals_forecast, t, tforecast, lamb, actual_id)
+    
     # Tiempo sobre el cual resolver
     tspan = (0f0, 1f0)
 
     # Parametrizar indices para poder acceder a los parametros extras de la red neuronal
     f(x,p) = round(Int, x * (length(p) - 1)) + 1
     
-    p, re = Flux.destructure(nn) # Para entrenar la red tenemos que extraer los parametros de la red neuronal en su condicion inicial
+    # Para entrenar la red tenemos que extraer los parametros de la red neuronal en su condicion inicial
+    p, re = Flux.destructure(nn) 
+
+    # Si existe el archivo con los parámetros de la red previamente los cargamos
+    if isfile("/home/juan.morales/ExploracionCompleta/Mini/4_layers/Parameters/$(actual_id)_Parameters.csv")
+        theta = CSV.read("/home/juan.morales/ExploracionCompleta/Mini/4_layers/Parameters/$(actual_id)_Parameters.csv", DataFrame)
+        p = Float32.(theta[:,1])
+    end
 
     # Optimizardor
     opt = opt(eta)
@@ -199,7 +217,7 @@ function Train_Neural_ODE(nn, U0, extra_parameters ,num_epochs, train_loader, op
 
         prob = ODEProblem(dSdt, u0, tspan)
 
-        return Array(solve(prob, Tsit5(), dtmin=1e-9 , u0 = u0, p = p, saveat = time_batch, reltol = 1e-7, abstol = 1e-7)) # Regresa la solución de la ODE
+        return Array(solve(prob, Tsit5(), dtmin=1e-9 , u0 = u0, p = p, saveat = time_batch, reltol = 1e-5, abstol = 1e-5)) # Regresa la solución de la ODE
     end
 
     # Función que predice las señales para un conjunto de condiciones iniciales
@@ -222,11 +240,15 @@ function Train_Neural_ODE(nn, U0, extra_parameters ,num_epochs, train_loader, op
     # Función de pérdida que vamos a minimizar, recibe un batch de señales y un batch de tiempos
     function loss_node(batch, time_batch)
         y = Predict_Singals(U0, extra_parameters, time_batch)
-        # y_forecasted = Predict_Singals(U0, extra_parameters, tforecast)
-        # return Flux.mse(y, batch') + lamb * (penalization_term(time_batch, y) + penalization_term(tforecast, y_forecasted))
-        return Flux.mse(y, batch')
+        return Flux.mse(y, batch') + lamb * (penalization_term(time_batch, y))
     end
     
+    # Función de Loss de validación, acá usamos las derivadas de la señal con pocos puntos
+    function loss_node_valid(batch, time_batch)
+        y = Predict_Singals(U0, extra_parameters_valid, time_batch)
+        return Flux.mse(y, batch') + lamb * (penalization_term(time_batch, y))
+    end
+
     # Función de callback para guardar el loss cada epoch
     global iter = 0
     loss = []
@@ -236,8 +258,8 @@ function Train_Neural_ODE(nn, U0, extra_parameters ,num_epochs, train_loader, op
         if iter % (length(train_loader)) == 0
             epoch = Int(iter / length(train_loader))
             actual_loss = loss_node(Signals, t)
-            forecast_loss = loss_node(Signals_forecast, tforecast)
-            println("Epoch = $epoch || Loss: $actual_loss || Loss Forecast: $forecast_loss")
+            forecast_loss = loss_node_valid(Signals_forecast, tforecast)
+            println("Epoch = $epoch || Loss: $actual_loss || Loss valid: $forecast_loss")
             push!(loss, actual_loss)
             push!(loss_forecast, forecast_loss)
         end
@@ -255,36 +277,16 @@ end
 function main()
     # Arquitecturas que vamos a utilizar
     architectures = [
-        [[2, 8, 1], relu], # Una capa oculta
-        [[2, 8, 1], tanh], # Misma con activación tanh
-        [[2, 8, 1], swish], # Misma con activación swish
-        
-        [[2, 16, 16, 1], relu], # Dos capas ocultas
-        [[2, 16, 16, 1], tanh], # Misma con activación tanh
-        [[2, 16, 16, 1], swish], # Misma con activación swish
-        
-        [[2, 32, 64, 16, 1], relu], # Tres capas ocultas
-        [[2, 32, 64, 16, 1], tanh], # Misma con activación tanh
-        [[2, 32, 64, 16, 1], swish], # Misma con activación swish
-
-        [[2, 128, 64, 16, 1], relu], # Tres capas ocultas con mas neuronas
-        [[2, 128, 64, 16, 1], tanh], # Misma con activación tanh
-        [[2, 128, 64, 16, 1], swish], # Misma con activación swish
-        
-        [[2, 64, 128, 64, 32, 16, 1], relu], # Cinco capas ocultas
-        [[2, 64, 128, 64, 32, 16, 1], tanh], # Misma con activación tanh
-        [[2, 64, 128, 64, 32, 16, 1], swish], # Misma con activación swish
-
-        [[2, 128, 256, 32, 64, 32, 16, 8, 1], relu], # Siete capas ocultas
-        [[2, 128, 256, 32, 64, 32, 16, 8, 1], tanh], # Misma con activación tanh
-        [[2, 128, 256, 32, 64, 32, 16, 8, 1], swish], # Misma con activación swish
+        [[2, 128, 64, 32, 16, 1], relu], # Cuatro capas ocultas con mas neuronas
+        [[2, 128, 64, 32, 16, 1], tanh_fast], # Misma con activación tanh_fast
+        [[2, 128, 64, 32, 16, 1], swish], # Misma con activación swish
         ]
 
     # Optimizadores que vamos a utilizar
-    optimizers = [opt for opt in [AdamW, RMSProp]]
+    optimizers = [opt for opt in [AdamW]]
 
     # Numero de mini-batchs que vamos a utilizar 
-    batchs_size = [30, 60] # En este caso cada bath es la mitda de una señal completa o la señal completa
+    batchs_size = [15, 30] 
 
     # Vector de configuraciones que vamos a utilizar
 
@@ -314,28 +316,33 @@ function main()
     
     t = vcat(t_short, t_long)
 
-    # Tomamos 6 sigmas y 10 tamaños de compartimientos para cada sigma o sea 60 señales
+    # Tomamos 1 sigma y 5 tamaños de compartimientos para cada sigma o sea 60 señales
     sampled_sigmas = [0.01, 0.2, 0.4, 0.6, 0.8, 1]
-    lcm_range = 1:25:125
+    lcm_range = 1:25:250
     
     # Obtenemos las señales representativas para un conjunto de sigmas y lcms
     Signals_rep, Signals_rep_derivadas, column_lcm_rep, column_sigmas_rep = Get_Signals_Data_Training(path_read, lcms, sigmas, sampled_sigmas, lcm_range, muestreo_corto, muestreo_largo, t)
 
-    # A partir de que indice de tiempo vamos a tomar predicciones
-    # Los anteriroes tiempos se usan para entrenar la NODE
-    idx_forecast = 61
+    # Numero de puntos en el conjunto de validación
+    n_valid = 10
+    
+    # Paso para tomar los tiempos y señales de entrenamiento y de validación
+    step = floor(Int, length(t) / n_valid) + 1
 
-    # Tiempos de entrenamiento y de predicción
-    tforecast = t[idx_forecast:end]
-    ttrain = t[1:idx_forecast-1]
+    # Tomamos los tiempos de entrenamiento y de validacion
+    tvalid = t[1:step:end]
+    ttrain = [t for t in t if t ∉ tvalid]
 
-    # Señaes de entrenamiento y de predicción
-    Signals_train = Signals_rep[:,1:idx_forecast-1]
-    Signals_valid = Signals_rep[:,idx_forecast:end]
+    indexes_train = [i for i in 1:length(t) if t[i] in ttrain]
+    indexes_valid = [i for i in 1:length(t) if t[i] in tvalid]
+
+    # Señaes de entrenamiento y de validacion
+    Signals_train = Signals_rep[:,indexes_train]
+    Signals_valid = Signals_rep[:,indexes_valid]
 
     # Derivadas de las señales de entrenamiento y de predicción
-    Signals_derivadas_train = Signals_rep_derivadas[1:idx_forecast-1,:]
-    Signals_derivadas_valid = Signals_rep_derivadas[idx_forecast:end,:]
+    Signals_derivadas_train = Signals_rep_derivadas[indexes_train,:]
+    Signals_derivadas_valid = get_signals_deriv_valid(tvalid, Signals_valid)
 
     # Tomamos un learning rate de 0.001
     eta = 1e-4
@@ -353,8 +360,8 @@ function main()
     layers = architecture[1]
     activation = architecture[2]
 
-    if activation == tanh
-        activation_string = "tanh"
+    if activation == tanh_fast
+        activation_string = "tanh_fast"
     elseif activation == relu
         activation_string = "relu"
     elseif activation == swish
@@ -376,30 +383,30 @@ function main()
     # Parámetro de penalización
     lambd = 0.1
 
-    # Entrenamos una NODE con mini-batchs para cada arquitectura, optimizador y tamaño de mini-batch y guardamos el loss y los parametros de la red neuronal
-    architecture_loss, theta, loss_forecast = Train_Neural_ODE(nn, U0, Signals_derivadas_train, epochs, train_loader, opt, eta, Signals_train, Signals_valid, ttrain, tforecast, lambd)
-
     # println("Arquitectura: $architecture", " || Optimizador: $opt", " || Tamaño de mini-batch: $batc_size", " || Loss: $(architecture_loss[end])", " || Loss Forecast: $(loss_forecast[end])")
 
+    # Número de modelo
     # actual_id = 1
     actual_id = parse(Int128,ARGS[1])
+
+    # Entrenamos una NODE con mini-batchs para cada arquitectura, optimizador y tamaño de mini-batch y guardamos el loss y los parametros de la red neuronal
+    architecture_loss, theta, loss_forecast = Train_Neural_ODE(nn, U0, Signals_derivadas_train, Signals_derivadas_valid, epochs, train_loader, opt, eta, Signals_train, Signals_valid, ttrain, tvalid, lambd, actual_id)
+
+    # Guardamos los hiperparámetros del entrenamiento y el loss final
     actual_layer = string(layers)
     actual_activation = activation_string
     actual_optimizer = opt_string
+    actual_batch_size = batch_size
     actual_loss_final_train = architecture_loss[end]
     actual_loss_final_forecast = loss_forecast[end]
-    actual_batch_size = batch_size
 
     # Guardamos los resultados en un archivo csv
-
     df_results_total = DataFrame(ID = actual_id, Arquitectura = actual_layer, Activación = actual_activation, Optimizador = actual_optimizer, Batch_Size = actual_batch_size, Loss_Final_Entrenamiento = actual_loss_final_train, Loss_Final_Predicción = actual_loss_final_forecast)
 
     # CSV.write("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/Exploracion Paralelizada/RepresentativeTrain_NODE/Resultados/$(actual_id)_$(actual_layer)_$(actual_activation)_$(actual_optimizer)_$(actual_batch_size).csv", df_results_total)
-    CSV.write("/home/juan.morales/Model1_Representative_trainingNODE/Resultados/$(actual_id)_$(actual_layer)_$(actual_activation)_$(actual_optimizer)_$(actual_batch_size).csv", df_results_total)
+    CSV.write("/home/juan.morales/ExploracionCompleta/Mini/4_layers/Resultados/$(actual_id)_$(actual_layer)_$(actual_activation)_$(actual_optimizer)_$(actual_batch_size).csv", df_results_total)
     
-
     # Guardamos los loss y los parametros de la red neuronal en archivos csv
-
     Loss_Matrix = zeros((length(architecture_loss), 2))
 
     for i in 1:length(architecture_loss)
@@ -412,14 +419,17 @@ function main()
     rename!(df_losses, Symbol("x1") => Symbol("Loss_Entrenamiento"))
     rename!(df_losses, Symbol("x2") => Symbol("Loss_Predicción"))
 
-    # CSV.write("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/Exploracion Paralelizada/RepresentativeTrain_NODE/Losses/$(actual_id)_losses.csv", df_losses)
-    CSV.write("/home/juan.morales/Model1_Representative_trainingNODE/Losses/$(actual_id)_losses.csv", df_losses)
-    
+    # Chequeamos si existe previamente un archivo CSV y si existe concatenamos al actual
+    if isfile("/home/juan.morales/ExploracionCompleta/Mini/4_layers/Losses/$(actual_id)_losses.csv")
+        df_losses = vcat(CSV.read("/home/juan.morales/ExploracionCompleta/Mini/4_layers/Losses/$(actual_id)_losses.csv", DataFrame), df_losses)
+    end
 
+    # CSV.write("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/Exploracion Paralelizada/RepresentativeTrain_NODE/Losses/$(actual_id)_losses.csv", df_losses)
+    CSV.write("/home/juan.morales/ExploracionCompleta/Mini/4_layers/Losses/$(actual_id)_losses.csv", df_losses)
+    
     df_theta = DataFrame(reshape(theta, length(theta), 1), :auto)
     # CSV.write("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/Exploracion Paralelizada/RepresentativeTrain_NODE/Parameters/$(actual_id)_Parameters.csv", df_losses)
-    CSV.write("/home/juan.morales/Model1_Representative_trainingNODE/Parameters/$(actual_id)_Parameters.csv", df_theta)
-
+    CSV.write("/home/juan.morales/ExploracionCompleta/Mini/4_layers/Parameters/$(actual_id)_Parameters.csv", df_theta)
 end
 
 main()

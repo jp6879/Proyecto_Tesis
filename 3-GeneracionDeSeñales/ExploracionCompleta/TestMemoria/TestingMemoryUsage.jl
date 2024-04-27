@@ -17,7 +17,7 @@ using Interpolations
 using OrdinaryDiffEq
 using IterTools: ncycle
 using Measures
-include("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/Exploracion Paralelizada/Representativos/Model1_Representative_trainingNODE/Arquitectura61/UtilsRepresentative.jl")
+include("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/Exploracion Paralelizada/Representativos/Model1_Representative_trainingNODE/Arquitectura67/UtilsRepresentative.jl")
 
 ##############################################################################################
 # Parámetros fijos
@@ -54,7 +54,7 @@ sigmas = 0.01:0.01:1
 # La función recibe como argumentos el arreglo de señales y el arreglo de tiempos
 # La función regresa un arreglo de derivadas de las señales
 
-function derivate_signals(t,signal)
+@time function derivate_signals(t,signal)
     # Calcula el tamaño de la ventana
     w = 1
     # Calcula el tamaño de la señal
@@ -100,27 +100,24 @@ lcm_range = 1:25:125
 # Obtenemos las señales representativas para un conjunto de sigmas y lcms
 Signals_rep, Signals_rep_derivadas, column_lcm_rep, column_sigmas_rep = Get_Signals_Data_Training(path_read, lcms, sigmas, sampled_sigmas, lcm_range, muestreo_corto, muestreo_largo, t)
 
-# Numero de puntos en el conjunto de validación
-n_valid = 10
+# A partir de que indice de tiempo vamos a tomar predicciones
+# Los anteriroes tiempos se usan para entrenar la NODE
+idx_forecast = 61
 
-# Paso para tomar los tiempos y señales de entrenamiento y de validación
-step = floor(Int, length(t) / n_valid) + 1
+# Definimos el tamaño del batch
+batch_size = 30
 
-# Tomamos los tiempos de entrenamiento y de validacion
-tvalid = t[1:step:end]
-ttrain = [t for t in t if t ∉ tvalid]
+# Tiempos de entrenamiento y de predicción
+tforecast = t[idx_forecast:end]
+ttrain = t[1:idx_forecast-1]
 
-indexes_train = [i for i in 1:length(t) if t[i] in ttrain]
-indexes_valid = [i for i in 1:length(t) if t[i] in tvalid]
-
-# Señaes de entrenamiento y de validacion
-Signals_train = Signals_rep[:,indexes_train]
-Signals_valid = Signals_rep[:,indexes_valid]
+# Señaes de entrenamiento y de predicción
+Signals_train = Signals_rep[:,1:idx_forecast-1]
+Signals_valid = Signals_rep[:,idx_forecast:end]
 
 # Derivadas de las señales de entrenamiento y de predicción
-Signals_derivadas_train = Signals_rep_derivadas[indexes_train,:]
-Signals_derivadas_valid = Signals_rep_derivadas[indexes_valid,:]
-
+Signals_derivadas_train = Signals_rep_derivadas[1:idx_forecast-1,:]
+Signals_derivadas_valid = Signals_rep_derivadas[idx_forecast:end,:]
 extra_parameters = Signals_derivadas_train
 
 # Todas las señales tienen la misma condición inicial U0 = 1
@@ -129,12 +126,17 @@ U0 = ones32(size(Signals_rep)[1])
 # Vamos a crear el dataloader para el entrenamiento de la NODE con mini-batchs
 train_loader = Flux.Data.DataLoader((Signals_train, ttrain), batchsize = batch_size)
 
+# ID    ,   Arquitectura,                           Activación,     Optimizador,        Batch_Size,            Loss_Final_Entrenamiento,        Loss_Final_Predicción
+# 61    ,   "[2, 128, 256, 32, 64, 32, 16, 8, 1]",      relu        ,AdamW,                 30,                 0.0334288864436486,             0.044980187121166276
 
 nn = Chain(Dense(2, 128, relu),
-            Dense(128, 64, relu),
+            Dense(128, 256, relu),
+            Dense(256, 32, relu),
+            Dense(32, 64, relu),
             Dense(64, 32, relu),
             Dense(32, 16, relu),
-            Dense(16, 1, relu),
+            Dense(16, 8, relu),
+            Dense(8, 1)
             )
 
 # Tomamos un learning rate de 0.001
@@ -149,8 +151,8 @@ f(x,p) = round(Int, x * (length(p) - 1)) + 1
 p, re = Flux.destructure(nn) # Para entrenar la red tenemos que extraer los parametros de la red neuronal en su condicion inicial
 
 # Leemos parámetros de la arquitectura 17
-# θ = CSV.read("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/Exploracion Paralelizada/Representativos/Model1_Representative_trainingNODE/Parameters/61_Parameters.csv", DataFrame)
-# p = Float32.(θ[:,1])
+θ = CSV.read("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/Exploracion Paralelizada/Representativos/Model1_Representative_trainingNODE/Parameters/61_Parameters.csv", DataFrame)
+p = Float32.(θ[:,1])
 
 ##############################################################################################
 
@@ -161,7 +163,7 @@ opt = RMSProp(η)
 tspan = (0f0, 1f0)
 
 # Función que resuelve la ODE con los parametros extra y las condiciones iniciales que instanciemos y nos regresa la solución en un arreglo
-function predict_NeuralODE(u0, parametros, time_batch)
+@time function predict_NeuralODE(u0, parametros, time_batch)
     # dSdt = NN(S, parametros_extra) 
     function dSdt(u, p, t; parametros_extra = parametros)
         indx = f(t, parametros) 
@@ -176,7 +178,7 @@ function predict_NeuralODE(u0, parametros, time_batch)
 end
 
 # Función que predice las señales para un conjunto de condiciones iniciales y parámetros extra
-function Predict_Singals(U0, parametros_extra, time_batch)
+@time function Predict_Singals(U0, parametros_extra, time_batch)
     Predicted_Signals = zeros(size(time_batch))
     for i in 1:length(U0)
         u0 = Float32[U0[i]]
@@ -190,7 +192,7 @@ end
 
 # Penalization term
 
-function penalization_term(time_batch,y)
+@time function penalization_term(time_batch,y)
     """
     Función de penalización para tratar de mantener la señal monotonamente decrecente
     En caso que la señal no sea monotonamente decreciente, la penalización es la suma de las diferencias positivas entre los tiempos
@@ -212,7 +214,7 @@ end
 # t_total = vcat(ttrain, tforecast)
 # y_total = vcat(y, y_forecasted)
 
-function loss_node(batch, time_batch, tforecast = tforecast , lamb = 1.0)
+@time function loss_node(batch, time_batch, tforecast = tforecast , lamb = 1.0)
     y = Predict_Singals(U0, extra_parameters, time_batch)
     # y_forecasted = Predict_Singals(U0, extra_parameters, tforecast)
     return Flux.mse(y, batch') #+ lamb * (penalization_term(time_batch, y) + penalization_term(tforecast, y_forecasted))
@@ -238,7 +240,7 @@ end
 # println("Loss inicial: ", loss_node(Signals_test_train, ttrain))
 
 # Entrenamos la red neuronal
-Flux.train!(loss_node, Flux.params(p,U0), ncycle(train_loader, epochs), opt, cb = callback)
+@time Flux.train!(loss_node, Flux.params(p,U0), ncycle(train_loader, epochs), opt, cb = callback)
 
 loss_node(Signals_train, ttrain)
 loss_node(Signals_valid, tforecast)

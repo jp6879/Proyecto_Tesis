@@ -116,52 +116,54 @@ end
 reduced_data_Signals, pca_model_signals = PCA_Data(dataSignals)
 # reduced_data_Probd, pca_model_probd = PCA_Data(dataProbd)
 
-df_PCA_Signals = DataFrame(
-		pc1 = reduced_data_Signals[1, :],
-	    pc2 = reduced_data_Signals[2, :],
-	    σs = column_σs,
-	    lcm = column_lcm,
-	)
+# df_PCA_Signals = DataFrame(
+# 		pc1 = reduced_data_Signals[1, :],
+# 	    pc2 = reduced_data_Signals[2, :],
+# 	    σs = column_σs,
+# 	    lcm = column_lcm,
+# 	)
 
-plot_lcms_S = @df df_PCA_Signals StatsPlots.scatter(
-    :pc1,
-    :pc2,
-    group = :σs,
-    marker = (0.2,5),
-    xaxis = (title = "PC1"),
-    yaxis = (title = "PC2"),
-    xlabel = "PC1",
-    ylabel = "PC2",
-    labels = false,  # Use the modified labels
-    title = "PCA para S(t) distingue σ",
-)
+# plot_lcms_S = @df df_PCA_Signals StatsPlots.scatter(
+#     :pc1,
+#     :pc2,
+#     group = :σs,
+#     marker = (0.2,5),
+#     xaxis = (title = "PC1"),
+#     yaxis = (title = "PC2"),
+#     xlabel = "PC1",
+#     ylabel = "PC2",
+#     labels = false,  # Use the modified labels
+#     title = "PCA para S(t) distingue σ",
+# )
 
-plot_lcms_S = @df df_PCA_Signals StatsPlots.scatter(
-    :pc1,
-    :pc2,
-    group = :lcm,
-    marker = (0.2,5),
-    xaxis = (title = "PC1"),
-    yaxis = (title = "PC2"),
-    xlabel = "PC1",
-    ylabel = "PC2",
-    labels = false,  # Use the modified labels
-    title = "PCA para S(t) distingue lcm",
-)
+# plot_lcms_S = @df df_PCA_Signals StatsPlots.scatter(
+#     :pc1,
+#     :pc2,
+#     group = :lcm,
+#     marker = (0.2,5),
+#     xaxis = (title = "PC1"),
+#     yaxis = (title = "PC2"),
+#     xlabel = "PC1",
+#     ylabel = "PC2",
+#     labels = false,  # Use the modified labels
+#     title = "PCA para S(t) distingue lcm",
+# )
 
 
 #------------------------------------------------------------------------------------------
 # Vamos a seleccionar algunos σ, de estos vamos a samplear algunos valores de lcm en una tira de valores y así hasta tener 80 señales
 # que representen aproximadamente bien el espacio de parámetros
 # sampled_sigmas = [0.01, 0.05, 0.1, 0.2, 0.3, 0.4 ,0.5, 0.6, 0.7, 0.8, 0.9, 1]
-sampled_sigmas = [0.01, 0.2, 0.4, 0.6, 0.8, 1]
-sampled_lcm = collect(lcms[1:25:125])
+# sampled_sigmas = [1]
+# sampled_lcm = collect(lcms[1:25:125])
 # collect(lcms)
 # lcm_range = 1:1:275
 # println(column_lcm[lcm_range])
-println(sampled_lcm)
+# println(sampled_lcm)
 
-
+sampled_sigmas = [1]
+lcm_range = 1:25:125
+sampled_lcm = collect(lcms[lcm_range])
 # lcm_range = 126:25:250
 # lcm_range = 1:25:250
 # rangos = []
@@ -211,7 +213,7 @@ plot_lcms_S = @df df_PCA_Signals StatsPlots.scatter(
 )
 
 scatter!(plot_lcms_S, xs, ys, label = false, color = "red", markersize=5,legend=:best, tickfontsize=11, labelfontsize=13, legendfontsize=8, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10, right_margin=5mm)
-savefig("PCA_SignalsRepresent_M1.png")
+savefig("PCA_SignalsMini.png")
 #------------------------------------------------------------------------------------------
 
 t_short = collect(range(0, 0.1, length = 1000))
