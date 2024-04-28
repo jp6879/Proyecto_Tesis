@@ -277,6 +277,10 @@ end
 function main()
     # Arquitecturas que vamos a utilizar
     architectures = [
+        [[2, 32, 64, 32, 16, 1], relu], # Cuatro capas ocultas
+        [[2, 32, 64, 32, 16, 1], tanh_fast], # Misma con activación tanh_fast
+        [[2, 32, 64, 32, 16, 1], swish], # Misma con activación swish
+
         [[2, 128, 64, 32, 16, 1], relu], # Cuatro capas ocultas con mas neuronas
         [[2, 128, 64, 32, 16, 1], tanh_fast], # Misma con activación tanh_fast
         [[2, 128, 64, 32, 16, 1], swish], # Misma con activación swish

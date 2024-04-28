@@ -182,9 +182,9 @@ Signals_test_derivadas_valid = Signals_test_derivadas[idxforecast:end,:]
 
 train_loader = Flux.Data.DataLoader((Signals_test_train, ttrain), batchsize = batch_size)
 
-nn = Chain(Dense(2,32, tanh),
-            Dense(32,64, tanh),
-            Dense(64,16, tanh),
+nn = Chain(Dense(2,32, tanh_fast),
+            Dense(32,64, tanh_fast),
+            Dense(64,16, tanh_fast),
             Dense(16,1))
 
  # Tomamos un learning rate de 0.001
@@ -279,6 +279,7 @@ linspace = range(-0.05, 1.1, length = 1000)
 constant = ones(length(linspace))*t[15]
 
 Plots_Train = []
+
 # Plot 2x2
 for i in 1:length(colors)
     if i == 1        

@@ -6,7 +6,7 @@
 #$ -cwd
 
 # Nombre del proceso
-#$ -N OneNODETest
+#$ -N ppNOde3L
 
 # stdout y stderr al mismo archivo de salida
 #$ -j y
@@ -26,9 +26,12 @@
 # Las variables de entorno actual son incluidas en el trabajo
 #$ -V
 
+# Setea el array de indices
+#$ -t 1-12
+
 # Llamamos al modulo que tiene julia, y ejecutamos el programa tal cual lo llamar�amos desde la linea
 # de comandos con los argumentos correspondientes al array de indices
 module load julia-1.9.0
 
-julia OneNODETrain.jl
+julia 3LPPTrainNODE.jl $SGE_TASK_ID
 

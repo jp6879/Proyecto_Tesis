@@ -199,8 +199,9 @@ function Train_Neural_ODE(nn, U0, extra_parameters, extra_parameters_valid ,num_
     # Si existe el archivo con los parámetros de la red previamente los cargamos
     if isfile("/home/juan.morales/ExploracionCompleta/Mini/4_layers/Parameters/$(actual_id)_Parameters.csv")
         theta = CSV.read("/home/juan.morales/ExploracionCompleta/Mini/4_layers/Parameters/$(actual_id)_Parameters.csv", DataFrame)
-        p = Float32.(theta[:,1])
     end
+
+    p = Float32.(theta[:,1])
 
     # Optimizardor
     opt = opt(eta)

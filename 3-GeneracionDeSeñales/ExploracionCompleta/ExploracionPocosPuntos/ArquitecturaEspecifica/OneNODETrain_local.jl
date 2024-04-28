@@ -35,7 +35,7 @@ t_long = collect(range(0.1, 1, length = 100))
     
 # Concatenate t_short and t_long
 t = vcat(t_short, t_long)
-
+toriginal = vcat(t_short, t_long)
 # path_read = "/home/juan.morales/datos_PCA"
 path_read = "C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/1-GeneracionDeDatos/Datos_Final/datos_PCA"
 
@@ -80,8 +80,8 @@ t_short = collect(range(0, 0.1, length = 1000))
 t_long = collect(range(0.1, 1, length = 100))
     
 # Vamos a tomar un subconjunto de t para hacer el entrenamiento de la NODE para agilizar los tiempos de entrenamiento
-muestreo_corto = 20 # Cada cuantos tiempos tomamos un timepo para entrenar la NODE
-muestreo_largo = 4
+muestreo_corto =  25 # Cada cuantos tiempos tomamos un timepo para entrenar la NODE
+muestreo_largo = 10
 
 # Esto da 100 tiempos 50 puntos desde 0 a 0.1 y 25 puntos desde 0.1 a 1
 t_short = t_short[1:muestreo_corto:end]
@@ -100,7 +100,7 @@ println("Lcms: ", Array(lcm_range))
 Signals_rep, Signals_rep_derivadas, column_lcm_rep, column_sigmas_rep = Get_Signals_Data_Training(path_read, lcms, sigmas, sampled_sigmas, lcm_range, muestreo_corto, muestreo_largo, t)
 
 # Numero de puntos para la validacion
-n_valid = 10
+n_valid = 9
 # Paso para tomar los tiempos de entrenamiento y validación
 step = floor(Int, length(t) / n_valid) + 1
 
@@ -129,6 +129,19 @@ end
 
 extra_parameters = Signals_derivadas_train
 extra_parameters_valid = Signals_derivadas_valid
+
+# Vamos a hacer un plot de las señales de entrenamiento y sus derivadas
+plot_signals = plot(t, Signals_rep[1,:], label = "Señal σ = $(column_sigmas_rep[1]) lcm = $(column_lcm_rep[1])", xlabel = "t", ylabel = "S(t)", title = "Señales de entrenamiento", lw = 2, tickfontsize=12, labelfontsize=15, legendfontsize=11, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10)
+plot!(ttrain, Signals_train[1,:], label = "Entrenamiento", xlabel = "t", ylabel = "S(t)", title = "Señales de entrenamiento", lw = 2, color = :red, markershape = :circle)
+plot!(tvalid, Signals_valid[1,:], label = "Validación", xlabel = "t", ylabel = "S(t)", title = "Señales de entrenamiento", lw = 2, color = :orange, markershape = :utriangle, ls = :dash)
+
+for i in 2:size(Signals_rep)[1]
+    plot!(plot_signals, vcat(t_short,t_long), Signals_rep[i,:], label = false, lw = 2)
+    plot!(plot_signals, ttrain, Signals_train[i,:], color = :red, label = false, markershape = :star6, ls = :dash, lw = 2)
+    plot!(plot_signals, tvalid, Signals_valid[i,:], color = :orange, label = false, markershape = :utriangle, ls = :dash, lw = 2)
+end
+
+plot_signals
 
 # Todas las señales tienen la misma condición inicial U0 = 1
 U0 = ones32(size(Signals_rep)[1])
@@ -163,28 +176,28 @@ U0 = ones32(size(Signals_rep)[1])
 # 13,"[2, 64, 128, 64, 32, 16, 1]",relu,AdamW,5,0.0009678331259607892,0.005956352000385658
 
 # id actual de la red
-actual_id = 7
+actual_id = 30
 
 #Definimos el batch size
-batch_size = 15
+batch_size = 10
 
 # Vamos a crear el dataloader para el entrenamiento de la NODE con mini-batchs
-train_loader = Flux.Data.DataLoader((Signals_train, ttrain), batchsize = batch_size)
+train_loader = Flux.Data.DataLoader((Signals_rep, t), batchsize = batch_size)
 
 # Función de activación
-activation = relu
+activation = tanh_fast
 
-nn = Chain(Dense(2, 128, activation),
-            Dense(128, 64, activation),
+nn = Chain(Dense(2, 32, activation),
+            Dense(32, 64, activation),
             Dense(64, 16, activation),
-            Dense(16, 1),
+            Dense(16, 1)
             )
 
 # Tomamos un learning rate de 0.001
-η = 1e-3
+η = 5e-4
 
 # Vamos a tomar 1000 épocas para entrenar todas las arquitecturas
-epochs = 10
+epochs = 100
 
 # Parametrizar indices para poder acceder a los parametros extras de la red neuronal
 f(x,p) = round(Int, x * (length(p) - 1)) + 1
@@ -281,10 +294,10 @@ end
 ###############################################################################################################
 
 # Parámetros de una red de 3 capas
-if isfile("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/ExploracionCompleta/Mini/3_layers/Parameters/$(actual_id)_Parameters.csv")
-    theta = CSV.read("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/ExploracionCompleta/Mini/3_layers/Parameters/$(actual_id)_Parameters.csv", DataFrame)
-    p = Float32.(theta[:,1])
-end
+# if isfile("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/ExploracionCompleta/Mini/3_layers/Parameters/$(actual_id)_Parameters.csv")
+#     theta = CSV.read("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/ExploracionCompleta/Mini/3_layers/Parameters/$(actual_id)_Parameters.csv", DataFrame)
+#     p = Float32.(theta[:,1])
+# end
 
 # Parámetros de una red de 4 capas
 # if isfile("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/ExploracionCompleta/Mini/4_layers/Parameters/$(actual_id)_Parameters.csv")
@@ -305,7 +318,7 @@ Flux.train!(loss_node, Flux.params(p), ncycle(train_loader, epochs), opt, cb = c
 # Guardamos los parámetros
 df_parameters = DataFrame(reshape(p, length(p), 1), :auto)
 
-# CSV.write("/home/juan.morales/ExploracionCompleta/Mini/ArquitecturaEspecifica/Parameters/$(actual_id)_Parameters.csv", df_parameters)
+CSV.write("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/ExploracionCompleta/ExploracionPocosPuntos/ArquitecturaEspecifica/Parameters/$(actual_id)_Parameters.csv", df_parameters)
 
 # Guardamos las funciónes de loss
 Loss_Matrix = zeros((length(loss), 2))
@@ -319,21 +332,22 @@ df_losses = DataFrame(Loss_Matrix, :auto)
 rename!(df_losses, Symbol("x1") => Symbol("Loss_Entrenamiento"))
 rename!(df_losses, Symbol("x2") => Symbol("Loss_Predicción"))
 
-# CSV.write("/home/juan.morales/ExploracionCompleta/Mini/ArquitecturaEspecifica/Losses/$(actual_id)_losses.csv", df_losses)
+CSV.write("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/ExploracionCompleta/ExploracionPocosPuntos/ArquitecturaEspecifica/Losses/$(actual_id)_losses.csv", df_losses)
 
 
 # # ##############################################################################################
 # # # Vamos a hacer un plot de las señales de entrenamiento y sus predicciones
 using Plots
-
-plot_predictions = plot(t, Signals_rep[10,:], label = "Señal σ = $(column_sigmas_rep[1]) lcm = $(column_lcm_rep[1])", xlabel = "t", ylabel = "S(t)", title = "Predicción de señales", lw = 2, tickfontsize=12, labelfontsize=15, legendfontsize=11, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10)
-plot!(ttrain, Predict_Singals(1, Signals_derivadas_train[:,10], ttrain), label = "Entrenamiento", xlabel = "t", ylabel = "S(t)", title = "Predicción de señales", lw = 2, color = :red, markershape = :circle)
-plot!(t, Predict_Singals(1, Signals_derivadas_valid[:,10], t), label = "Predicción", lw = 2, color = :orange, markershape = :utriangle, ls = :dash)
+plot_predictions = plot(t, Signals_rep[1,:], label = "Señal σ = $(column_sigmas_rep[1]) lcm = $(column_lcm_rep[1])", xlabel = "t", ylabel = "S(t)", title = "Predicción de señales", lw = 2, tickfontsize=12, labelfontsize=15, legendfontsize=11, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10)
+plot!(ttrain, Predict_Singals(1, Signals_derivadas_train[:,1], ttrain), label = "Entrenamiento", xlabel = "t", ylabel = "S(t)", title = "Predicción de señales", lw = 2, color = :red, markershape = :circle)
+plot!(t, Predict_Singals(1, Signals_derivadas_valid[:,1], t), label = "Predicción", lw = 2, color = :orange, markershape = :utriangle, ls = :dash)
+plot!(toriginal, Predict_Singals(1, Signals_derivadas_valid[:,1], toriginal), label = "Predicción", lw = 2, color = :orange, markershape = :utriangle, ls = :dash)
 
 for i in 2:size(Signals_rep)[1]
     plot!(plot_predictions, vcat(t_short,t_long), Signals_rep[i,:], label = false, lw = 2)
     plot!(plot_predictions, ttrain, Predict_Singals(U0[i], Signals_derivadas_train[:,i], ttrain), color = :red, label = false, markershape = :star6, ls = :dash, lw = 2)
     plot!(plot_predictions, tvalid, Predict_Singals(U0[i], Signals_derivadas_valid[:,i], tvalid), color = :orange, label = false, markershape = :utriangle, ls = :dash, lw = 2)
+    plot!(plot_predictions, toriginal, Predict_Singals(U0[i], Signals_derivadas_valid[:,i], toriginal), color = :orange, label = false, markershape = :utriangle, ls = :dash, lw = 2)
 end
 
 plot_predictions

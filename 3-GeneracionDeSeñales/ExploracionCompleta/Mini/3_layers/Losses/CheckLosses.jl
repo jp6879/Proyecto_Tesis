@@ -9,7 +9,7 @@ csv_files = readdir(folder_path, join=true) |> filter(file -> endswith(file, ".c
 file = csv_files[1]
 
 # Epoca desde donde empezar a graficar
-start_from_epoch = 1000
+start_from_epoch = 100
 
 for (i, file) in enumerate(csv_files)
     df = CSV.read(file, DataFrame)

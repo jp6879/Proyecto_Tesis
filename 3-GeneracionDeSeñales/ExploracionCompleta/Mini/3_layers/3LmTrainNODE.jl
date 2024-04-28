@@ -290,10 +290,9 @@ function main()
     optimizers = [opt for opt in [AdamW]]
 
     # Numero de mini-batchs que vamos a utilizar 
-    batchs_size = [15, 30] 
+    batchs_size = [5, 65]
 
     # Vector de configuraciones que vamos a utilizar
-
     configuraciones = []
 
     for arch in architectures
@@ -391,7 +390,7 @@ function main()
 
     # Número de modelo
     # actual_id = 1
-    actual_id = parse(Int128,ARGS[1])
+    actual_id = parse(Int128,ARGS[1]) + 12
 
     # Entrenamos una NODE con mini-batchs para cada arquitectura, optimizador y tamaño de mini-batch y guardamos el loss y los parametros de la red neuronal
     architecture_loss, theta, loss_forecast = Train_Neural_ODE(nn, U0, Signals_derivadas_train, Signals_derivadas_valid, epochs, train_loader, opt, eta, Signals_train, Signals_valid, ttrain, tvalid, lambd, actual_id)
