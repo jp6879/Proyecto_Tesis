@@ -1,0 +1,123 @@
+┌ Error: CUDA.jl could not find an appropriate CUDA runtime to use.
+│ 
+│ This can have several reasons:
+│ * you are using an unsupported platform: this version of CUDA.jl
+│   only supports Linux (x86_64, aarch64, ppc64le) and Windows (x86_64),
+│   while your platform was identified as x86_64-linux-gnu-libgfortran5-cxx11-cuda+none-julia_version+1.9.0;
+│ * you precompiled CUDA.jl in an environment where the CUDA driver
+│   was not available (i.e., a container, or an HPC login node).
+│   in that case, you need to specify which CUDA version to use
+│   by calling `CUDA.set_runtime_version!`;
+│ * you requested use of a local CUDA toolkit, but not all
+│   required components were discovered. try running with
+│   JULIA_DEBUG=all in your environment for more details.
+│ 
+│ For more details, refer to the CUDA.jl documentation at
+│ https://cuda.juliagpu.org/stable/installation/overview/
+└ @ CUDA ~/.julia/packages/CUDA/35NC6/src/initialization.jl:82
+ERROR: LoadError: BoundsError: attempt to access 52-element Vector{Float32} at index [54]
+Stacktrace:
+  [1] getindex
+    @ ./essentials.jl:13 [inlined]
+  [2] (::var"#dSdt#12"{Vector{Float32}, Vector{Float32}, var"#dSdt#11#13"{Vector{Float32}, Vector{Float32}}})(u::Vector{Float32}, p::Vector{Float32}, t::Float32; parametros_extra::Vector{Float32}, parametros_extra2::Vector{Float32})
+    @ Main ~/ExploracionV2/ArquitecturaEspecifica/OneNODEV2.jl:197
+  [3] (::var"#dSdt#12"{Vector{Float32}, Vector{Float32}, var"#dSdt#11#13"{Vector{Float32}, Vector{Float32}}})(u::Vector{Float32}, p::Vector{Float32}, t::Float32)
+    @ Main ~/ExploracionV2/ArquitecturaEspecifica/OneNODEV2.jl:194
+  [4] (::ODEFunction{false, SciMLBase.AutoSpecialize, var"#dSdt#12"{Vector{Float32}, Vector{Float32}, var"#dSdt#11#13"{Vector{Float32}, Vector{Float32}}}, LinearAlgebra.UniformScaling{Bool}, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, typeof(SciMLBase.DEFAULT_OBSERVED), Nothing, Nothing})(::Vector{Float32}, ::Vararg{Any})
+    @ SciMLBase ~/.julia/packages/SciMLBase/8XHkk/src/scimlfunctions.jl:2407
+  [5] perform_step!(integrator::OrdinaryDiffEq.ODEIntegrator{Tsit5{typeof(OrdinaryDiffEq.trivial_limiter!), typeof(OrdinaryDiffEq.trivial_limiter!), Static.False}, false, Vector{Float32}, Nothing, Float32, Vector{Float32}, Float32, Float32, Float32, Float32, Vector{Vector{Float32}}, ODESolution{Float32, 2, Vector{Vector{Float32}}, Nothing, Nothing, Vector{Float32}, Vector{Vector{Vector{Float32}}}, ODEProblem{Vector{Float32}, Tuple{Float32, Float32}, false, Vector{Float32}, ODEFunction{false, SciMLBase.AutoSpecialize, var"#dSdt#12"{Vector{Float32}, Vector{Float32}, var"#dSdt#11#13"{Vector{Float32}, Vector{Float32}}}, LinearAlgebra.UniformScaling{Bool}, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, typeof(SciMLBase.DEFAULT_OBSERVED), Nothing, Nothing}, Base.Pairs{Symbol, Union{}, Tuple{}, NamedTuple{(), Tuple{}}}, SciMLBase.StandardODEProblem}, Tsit5{typeof(OrdinaryDiffEq.trivial_limiter!), typeof(OrdinaryDiffEq.trivial_limiter!), Static.False}, OrdinaryDiffEq.InterpolationData{ODEFunction{false, SciMLBase.AutoSpecialize, var"#dSdt#12"{Vector{Float32}, Vector{Float32}, var"#dSdt#11#13"{Vector{Float32}, Vector{Float32}}}, LinearAlgebra.UniformScaling{Bool}, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, typeof(SciMLBase.DEFAULT_OBSERVED), Nothing, Nothing}, Vector{Vector{Float32}}, Vector{Float32}, Vector{Vector{Vector{Float32}}}, OrdinaryDiffEq.Tsit5ConstantCache}, SciMLBase.DEStats, Nothing}, ODEFunction{false, SciMLBase.AutoSpecialize, var"#dSdt#12"{Vector{Float32}, Vector{Float32}, var"#dSdt#11#13"{Vector{Float32}, Vector{Float32}}}, LinearAlgebra.UniformScaling{Bool}, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, typeof(SciMLBase.DEFAULT_OBSERVED), Nothing, Nothing}, OrdinaryDiffEq.Tsit5ConstantCache, OrdinaryDiffEq.DEOptions{Float64, Float64, Float32, Float32, PIController{Rational{Int64}}, typeof(DiffEqBase.ODE_DEFAULT_NORM), typeof(LinearAlgebra.opnorm), Bool, CallbackSet{Tuple{}, Tuple{}}, typeof(DiffEqBase.ODE_DEFAULT_ISOUTOFDOMAIN), typeof(DiffEqBase.ODE_DEFAULT_PROG_MESSAGE), typeof(DiffEqBase.ODE_DEFAULT_UNSTABLE_CHECK), DataStructures.BinaryHeap{Float32, DataStructures.FasterForward}, DataStructures.BinaryHeap{Float32, DataStructures.FasterForward}, Nothing, Nothing, Int64, Tuple{}, Tuple{}, Tuple{}}, Vector{Float32}, Float32, Nothing, OrdinaryDiffEq.DefaultInit}, cache::OrdinaryDiffEq.Tsit5ConstantCache, repeat_step::Bool)
+    @ OrdinaryDiffEq ~/.julia/packages/OrdinaryDiffEq/Y6bIX/src/perform_step/low_order_rk_perform_step.jl:747
+  [6] perform_step!
+    @ ~/.julia/packages/OrdinaryDiffEq/Y6bIX/src/perform_step/low_order_rk_perform_step.jl:739 [inlined]
+  [7] solve!(integrator::OrdinaryDiffEq.ODEIntegrator{Tsit5{typeof(OrdinaryDiffEq.trivial_limiter!), typeof(OrdinaryDiffEq.trivial_limiter!), Static.False}, false, Vector{Float32}, Nothing, Float32, Vector{Float32}, Float32, Float32, Float32, Float32, Vector{Vector{Float32}}, ODESolution{Float32, 2, Vector{Vector{Float32}}, Nothing, Nothing, Vector{Float32}, Vector{Vector{Vector{Float32}}}, ODEProblem{Vector{Float32}, Tuple{Float32, Float32}, false, Vector{Float32}, ODEFunction{false, SciMLBase.AutoSpecialize, var"#dSdt#12"{Vector{Float32}, Vector{Float32}, var"#dSdt#11#13"{Vector{Float32}, Vector{Float32}}}, LinearAlgebra.UniformScaling{Bool}, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, typeof(SciMLBase.DEFAULT_OBSERVED), Nothing, Nothing}, Base.Pairs{Symbol, Union{}, Tuple{}, NamedTuple{(), Tuple{}}}, SciMLBase.StandardODEProblem}, Tsit5{typeof(OrdinaryDiffEq.trivial_limiter!), typeof(OrdinaryDiffEq.trivial_limiter!), Static.False}, OrdinaryDiffEq.InterpolationData{ODEFunction{false, SciMLBase.AutoSpecialize, var"#dSdt#12"{Vector{Float32}, Vector{Float32}, var"#dSdt#11#13"{Vector{Float32}, Vector{Float32}}}, LinearAlgebra.UniformScaling{Bool}, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, typeof(SciMLBase.DEFAULT_OBSERVED), Nothing, Nothing}, Vector{Vector{Float32}}, Vector{Float32}, Vector{Vector{Vector{Float32}}}, OrdinaryDiffEq.Tsit5ConstantCache}, SciMLBase.DEStats, Nothing}, ODEFunction{false, SciMLBase.AutoSpecialize, var"#dSdt#12"{Vector{Float32}, Vector{Float32}, var"#dSdt#11#13"{Vector{Float32}, Vector{Float32}}}, LinearAlgebra.UniformScaling{Bool}, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, typeof(SciMLBase.DEFAULT_OBSERVED), Nothing, Nothing}, OrdinaryDiffEq.Tsit5ConstantCache, OrdinaryDiffEq.DEOptions{Float64, Float64, Float32, Float32, PIController{Rational{Int64}}, typeof(DiffEqBase.ODE_DEFAULT_NORM), typeof(LinearAlgebra.opnorm), Bool, CallbackSet{Tuple{}, Tuple{}}, typeof(DiffEqBase.ODE_DEFAULT_ISOUTOFDOMAIN), typeof(DiffEqBase.ODE_DEFAULT_PROG_MESSAGE), typeof(DiffEqBase.ODE_DEFAULT_UNSTABLE_CHECK), DataStructures.BinaryHeap{Float32, DataStructures.FasterForward}, DataStructures.BinaryHeap{Float32, DataStructures.FasterForward}, Nothing, Nothing, Int64, Tuple{}, Tuple{}, Tuple{}}, Vector{Float32}, Float32, Nothing, OrdinaryDiffEq.DefaultInit})
+    @ OrdinaryDiffEq ~/.julia/packages/OrdinaryDiffEq/Y6bIX/src/solve.jl:538
+  [8] #__solve#746
+    @ ~/.julia/packages/OrdinaryDiffEq/Y6bIX/src/solve.jl:6 [inlined]
+  [9] __solve
+    @ ~/.julia/packages/OrdinaryDiffEq/Y6bIX/src/solve.jl:1 [inlined]
+ [10] solve_call(_prob::ODEProblem{Vector{Float32}, Tuple{Float32, Float32}, false, Vector{Float32}, ODEFunction{false, SciMLBase.AutoSpecialize, var"#dSdt#12"{Vector{Float32}, Vector{Float32}, var"#dSdt#11#13"{Vector{Float32}, Vector{Float32}}}, LinearAlgebra.UniformScaling{Bool}, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, typeof(SciMLBase.DEFAULT_OBSERVED), Nothing, Nothing}, Base.Pairs{Symbol, Union{}, Tuple{}, NamedTuple{(), Tuple{}}}, SciMLBase.StandardODEProblem}, args::Tsit5{typeof(OrdinaryDiffEq.trivial_limiter!), typeof(OrdinaryDiffEq.trivial_limiter!), Static.False}; merge_callbacks::Bool, kwargshandle::Nothing, kwargs::Base.Pairs{Symbol, Real, NTuple{7, Symbol}, NamedTuple{(:save_noise, :save_start, :save_end, :verbose, :dtmin, :reltol, :abstol), Tuple{Bool, Bool, Bool, Bool, Float64, Float64, Float64}}})
+    @ DiffEqBase ~/.julia/packages/DiffEqBase/7s9cb/src/solve.jl:608
+ [11] solve_call
+    @ ~/.julia/packages/DiffEqBase/7s9cb/src/solve.jl:566 [inlined]
+ [12] #solve_up#42
+    @ ~/.julia/packages/DiffEqBase/7s9cb/src/solve.jl:1057 [inlined]
+ [13] solve_up
+    @ ~/.julia/packages/DiffEqBase/7s9cb/src/solve.jl:1043 [inlined]
+ [14] #solve#40
+    @ ~/.julia/packages/DiffEqBase/7s9cb/src/solve.jl:980 [inlined]
+ [15] _concrete_solve_adjoint(::ODEProblem{Vector{Float32}, Tuple{Float32, Float32}, false, Vector{Float32}, ODEFunction{false, SciMLBase.AutoSpecialize, var"#dSdt#12"{Vector{Float32}, Vector{Float32}, var"#dSdt#11#13"{Vector{Float32}, Vector{Float32}}}, LinearAlgebra.UniformScaling{Bool}, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, typeof(SciMLBase.DEFAULT_OBSERVED), Nothing, Nothing}, Base.Pairs{Symbol, Union{}, Tuple{}, NamedTuple{(), Tuple{}}}, SciMLBase.StandardODEProblem}, ::Tsit5{typeof(OrdinaryDiffEq.trivial_limiter!), typeof(OrdinaryDiffEq.trivial_limiter!), Static.False}, ::InterpolatingAdjoint{0, true, Val{:central}, ZygoteVJP}, ::Vector{Float32}, ::Vector{Float32}, ::SciMLBase.ChainRulesOriginator; save_start::Bool, save_end::Bool, saveat::Vector{Float32}, save_idxs::Nothing, kwargs::Base.Pairs{Symbol, Real, NTuple{4, Symbol}, NamedTuple{(:verbose, :dtmin, :reltol, :abstol), Tuple{Bool, Float64, Float64, Float64}}})
+    @ SciMLSensitivity ~/.julia/packages/SciMLSensitivity/4Ah3r/src/concrete_solve.jl:336
+ [16] _concrete_solve_adjoint(::ODEProblem{Vector{Float32}, Tuple{Float32, Float32}, false, Vector{Float32}, ODEFunction{false, SciMLBase.AutoSpecialize, var"#dSdt#12"{Vector{Float32}, Vector{Float32}, var"#dSdt#11#13"{Vector{Float32}, Vector{Float32}}}, LinearAlgebra.UniformScaling{Bool}, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, typeof(SciMLBase.DEFAULT_OBSERVED), Nothing, Nothing}, Base.Pairs{Symbol, Union{}, Tuple{}, NamedTuple{(), Tuple{}}}, SciMLBase.StandardODEProblem}, ::Tsit5{typeof(OrdinaryDiffEq.trivial_limiter!), typeof(OrdinaryDiffEq.trivial_limiter!), Static.False}, ::Nothing, ::Vector{Float32}, ::Vector{Float32}, ::SciMLBase.ChainRulesOriginator; verbose::Bool, kwargs::Base.Pairs{Symbol, Any, NTuple{4, Symbol}, NamedTuple{(:dtmin, :saveat, :reltol, :abstol), Tuple{Float64, Vector{Float32}, Float64, Float64}}})
+    @ SciMLSensitivity ~/.julia/packages/SciMLSensitivity/4Ah3r/src/concrete_solve.jl:215
+ [17] _solve_adjoint(prob::ODEProblem{Vector{Float32}, Tuple{Float32, Float32}, false, SciMLBase.NullParameters, ODEFunction{false, SciMLBase.AutoSpecialize, var"#dSdt#12"{Vector{Float32}, Vector{Float32}, var"#dSdt#11#13"{Vector{Float32}, Vector{Float32}}}, LinearAlgebra.UniformScaling{Bool}, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, typeof(SciMLBase.DEFAULT_OBSERVED), Nothing, Nothing}, Base.Pairs{Symbol, Union{}, Tuple{}, NamedTuple{(), Tuple{}}}, SciMLBase.StandardODEProblem}, sensealg::Nothing, u0::Vector{Float32}, p::Vector{Float32}, originator::SciMLBase.ChainRulesOriginator, args::Tsit5{typeof(OrdinaryDiffEq.trivial_limiter!), typeof(OrdinaryDiffEq.trivial_limiter!), Static.False}; merge_callbacks::Bool, kwargs::Base.Pairs{Symbol, Any, NTuple{4, Symbol}, NamedTuple{(:dtmin, :saveat, :reltol, :abstol), Tuple{Float64, Vector{Float32}, Float64, Float64}}})
+    @ DiffEqBase ~/.julia/packages/DiffEqBase/7s9cb/src/solve.jl:1512
+ [18] _solve_adjoint
+    @ ~/.julia/packages/DiffEqBase/7s9cb/src/solve.jl:1486 [inlined]
+ [19] #rrule#6
+    @ ~/.julia/packages/DiffEqBase/7s9cb/ext/DiffEqBaseChainRulesCoreExt.jl:25 [inlined]
+ [20] rrule
+    @ ~/.julia/packages/DiffEqBase/7s9cb/ext/DiffEqBaseChainRulesCoreExt.jl:21 [inlined]
+ [21] rrule
+    @ ~/.julia/packages/ChainRulesCore/6DiyF/src/rules.jl:140 [inlined]
+ [22] chain_rrule_kw
+    @ ~/.julia/packages/Zygote/jxHJc/src/compiler/chainrules.jl:235 [inlined]
+ [23] macro expansion
+    @ ~/.julia/packages/Zygote/jxHJc/src/compiler/interface2.jl:101 [inlined]
+ [24] _pullback
+    @ ~/.julia/packages/Zygote/jxHJc/src/compiler/interface2.jl:101 [inlined]
+ [25] _apply
+    @ ./boot.jl:838 [inlined]
+ [26] adjoint
+    @ ~/.julia/packages/Zygote/jxHJc/src/lib/lib.jl:203 [inlined]
+ [27] _pullback
+    @ ~/.julia/packages/ZygoteRules/M4xmc/src/adjoint.jl:67 [inlined]
+ [28] _pullback
+    @ ~/.julia/packages/DiffEqBase/7s9cb/src/solve.jl:980 [inlined]
+ [29] _pullback(::Zygote.Context{true}, ::DiffEqBase.var"##solve#40", ::Nothing, ::Vector{Float32}, ::Vector{Float32}, ::Val{true}, ::Base.Pairs{Symbol, Any, NTuple{4, Symbol}, NamedTuple{(:dtmin, :saveat, :reltol, :abstol), Tuple{Float64, Vector{Float32}, Float64, Float64}}}, ::typeof(solve), ::ODEProblem{Vector{Float32}, Tuple{Float32, Float32}, false, SciMLBase.NullParameters, ODEFunction{false, SciMLBase.AutoSpecialize, var"#dSdt#12"{Vector{Float32}, Vector{Float32}, var"#dSdt#11#13"{Vector{Float32}, Vector{Float32}}}, LinearAlgebra.UniformScaling{Bool}, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, typeof(SciMLBase.DEFAULT_OBSERVED), Nothing, Nothing}, Base.Pairs{Symbol, Union{}, Tuple{}, NamedTuple{(), Tuple{}}}, SciMLBase.StandardODEProblem}, ::Tsit5{typeof(OrdinaryDiffEq.trivial_limiter!), typeof(OrdinaryDiffEq.trivial_limiter!), Static.False})
+    @ Zygote ~/.julia/packages/Zygote/jxHJc/src/compiler/interface2.jl:0
+ [30] _apply(::Function, ::Vararg{Any})
+    @ Core ./boot.jl:838
+ [31] adjoint
+    @ ~/.julia/packages/Zygote/jxHJc/src/lib/lib.jl:203 [inlined]
+ [32] _pullback
+    @ ~/.julia/packages/ZygoteRules/M4xmc/src/adjoint.jl:67 [inlined]
+ [33] _pullback
+    @ ~/.julia/packages/DiffEqBase/7s9cb/src/solve.jl:970 [inlined]
+ [34] _pullback(::Zygote.Context{true}, ::typeof(Core.kwcall), ::NamedTuple{(:dtmin, :u0, :p, :saveat, :reltol, :abstol), Tuple{Float64, Vector{Float32}, Vector{Float32}, Vector{Float32}, Float64, Float64}}, ::typeof(solve), ::ODEProblem{Vector{Float32}, Tuple{Float32, Float32}, false, SciMLBase.NullParameters, ODEFunction{false, SciMLBase.AutoSpecialize, var"#dSdt#12"{Vector{Float32}, Vector{Float32}, var"#dSdt#11#13"{Vector{Float32}, Vector{Float32}}}, LinearAlgebra.UniformScaling{Bool}, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, typeof(SciMLBase.DEFAULT_OBSERVED), Nothing, Nothing}, Base.Pairs{Symbol, Union{}, Tuple{}, NamedTuple{(), Tuple{}}}, SciMLBase.StandardODEProblem}, ::Tsit5{typeof(OrdinaryDiffEq.trivial_limiter!), typeof(OrdinaryDiffEq.trivial_limiter!), Static.False})
+    @ Zygote ~/.julia/packages/Zygote/jxHJc/src/compiler/interface2.jl:0
+ [35] _pullback
+    @ ~/ExploracionV2/ArquitecturaEspecifica/OneNODEV2.jl:204 [inlined]
+ [36] _pullback(::Zygote.Context{true}, ::typeof(predict_NeuralODE), ::Vector{Float32}, ::Vector{Float32}, ::Vector{Float32}, ::Vector{Float32})
+    @ Zygote ~/.julia/packages/Zygote/jxHJc/src/compiler/interface2.jl:0
+ [37] _pullback
+    @ ~/ExploracionV2/ArquitecturaEspecifica/OneNODEV2.jl:212 [inlined]
+ [38] _pullback(::Zygote.Context{true}, ::typeof(Predict_Singals), ::Vector{Float32}, ::Matrix{Float32}, ::LinearAlgebra.Adjoint{Float32, Matrix{Float32}}, ::Vector{Float32})
+    @ Zygote ~/.julia/packages/Zygote/jxHJc/src/compiler/interface2.jl:0
+ [39] _pullback
+    @ ~/ExploracionV2/ArquitecturaEspecifica/OneNODEV2.jl:226 [inlined]
+--- the last 2 lines are repeated 1 more time ---
+ [42] _pullback(::Zygote.Context{true}, ::typeof(loss_node), ::Matrix{Float32}, ::Vector{Float32})
+    @ Zygote ~/.julia/packages/Zygote/jxHJc/src/compiler/interface2.jl:0
+ [43] _apply
+    @ ./boot.jl:838 [inlined]
+ [44] adjoint
+    @ ~/.julia/packages/Zygote/jxHJc/src/lib/lib.jl:203 [inlined]
+ [45] _pullback
+    @ ~/.julia/packages/ZygoteRules/M4xmc/src/adjoint.jl:67 [inlined]
+ [46] _pullback
+    @ ~/.julia/packages/Flux/n3cOc/src/optimise/train.jl:143 [inlined]
+ [47] _pullback(::Zygote.Context{true}, ::Flux.Optimise.var"#37#40"{typeof(loss_node), Tuple{Matrix{Float32}, Vector{Float32}}})
+    @ Zygote ~/.julia/packages/Zygote/jxHJc/src/compiler/interface2.jl:0
+ [48] pullback(f::Function, ps::Zygote.Params{Zygote.Buffer{Any, Vector{Any}}})
+    @ Zygote ~/.julia/packages/Zygote/jxHJc/src/compiler/interface.jl:465
+ [49] withgradient(f::Function, args::Zygote.Params{Zygote.Buffer{Any, Vector{Any}}})
+    @ Zygote ~/.julia/packages/Zygote/jxHJc/src/compiler/interface.jl:205
+ [50] macro expansion
+    @ ~/.julia/packages/Flux/n3cOc/src/optimise/train.jl:142 [inlined]
+ [51] macro expansion
+    @ ~/.julia/packages/ProgressLogging/6KXlp/src/ProgressLogging.jl:328 [inlined]
+ [52] train!(loss::Function, ps::Zygote.Params{Zygote.Buffer{Any, Vector{Any}}}, data::IterTools.NCycle{MLUtils.DataLoader{Tuple{Matrix{Float32}, Vector{Float32}}, Random._GLOBAL_RNG, Val{nothing}}}, opt::Flux.Optimise.Optimiser; cb::var"#14#15")
+    @ Flux.Optimise ~/.julia/packages/Flux/n3cOc/src/optimise/train.jl:140
+in expression starting at /home/juan.morales/ExploracionV2/ArquitecturaEspecifica/OneNODEV2.jl:255
+Sigmas: [1.0]
+Lcms: [0.5, 1.0, 1.5, 2.0, 2.5]

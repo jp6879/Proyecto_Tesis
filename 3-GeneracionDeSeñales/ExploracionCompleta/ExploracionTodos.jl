@@ -384,7 +384,117 @@ function Predict_Singals(U0, parametros_extra, parametros_extra2, time_batch)
 end
 
 # ╔═╡ 2b27f6d5-b80d-40aa-abf6-a1d6462887ed
+md"## Mas de una señal
 
+Probemos ahora que pasa cuando intentamos con la mísma arquitectura y método predecir más de una única señal. En este caso tomamos 5 señales mantiendo constante el $\sigma = 1$, para distintos valores de $l_{cm} = 0.5,~1.0,~1.5,~2.0,~2.5$ $\mu$m.
+
+Esto nos da las siguientes señales:
+"
+
+# ╔═╡ 6cc43322-da4c-4468-a9c0-f65b77ee59f0
+PlutoUI.Resource("https://imgur.com/LooUP6t.png")
+
+# ╔═╡ 660faace-2bde-46f9-9bcb-986572cb76f5
+md"Para esto hicimos nuevamente hicimos otra exploración de parámetros para poder encontrar cual es el mejor modelo para predecir estas señales.
+
+## Arquitecturas con 4 capas
+
+$$\begin{aligned}
+& \begin{array}{ccccccc}
+    \hline
+    \text{ID} & \text{Arq} & \text{Activ} & \text{Optim} & \text{BatchS} & \text{LossTrain} & \text{LossPredict} \\
+    \hline
+    1 & [3, 32, 32, 16, 8, 1] & \text{relu} & \text{AdamW} & 15 & 0.00467 & 0.16700 \\
+    2 & [3, 32, 32, 16, 8, 1] & \text{relu} & \text{AdamW} & 30 & 0.02513 & 0.04321 \\
+    3 & [3, 32, 32, 16, 8, 1] & \text{tanh\_fast} & \text{AdamW} & 15 & 0.01621 & 0.07001 \\
+    4 & [3, 32, 32, 16, 8, 1] & \text{tanh\_fast} & \text{AdamW} & 30 & 0.02804 & 0.09460 \\
+    5 & [3, 32, 32, 16, 8, 1] & \text{swish} & \text{AdamW} & 15 & 0.01052 & 0.12846 \\
+    6 & [3, 32, 32, 16, 8, 1] & \text{swish} & \text{AdamW} & 30 & 0.02816 & 0.03355 \\
+    7 & [3, 32, 64, 16, 8, 1] & \text{relu} & \text{AdamW} & 15 & 0.00901 & 0.12464 \\
+    8 & [3, 32, 64, 16, 8, 1] & \text{relu} & \text{AdamW} & 30 & 0.00261 & 0.18242 \\
+    9 & [3, 32, 64, 16, 8, 1] & \text{tanh\_fast} & \text{AdamW} & 15 & 0.02860 & 0.02959 \\
+    10 & [3, 32, 64, 16, 8, 1] & \text{tanh\_fast} & \text{AdamW} & 30 & 0.02660 & 0.07755 \\
+    11 & [3, 32, 64, 16, 8, 1] & \text{swish} & \text{AdamW} & 15 & 0.01181 & 0.11249 \\
+    12 & [3, 32, 64, 16, 8, 1] & \text{swish} & \text{AdamW} & 30 & 0.01032 & 0.15790 \\
+    13 & [3, 128, 64, 16, 8, 1] & \text{relu} & \text{AdamW} & 15 & 0.03123 & 0.03414 \\
+    14 & [3, 128, 64, 16, 8, 1] & \text{relu} & \text{AdamW} & 30 & 0.00902 & 0.21491 \\
+    15 & [3, 128, 64, 16, 8, 1] & \text{tanh\_fast} & \text{AdamW} & 15 & 0.02581 & 0.09521 \\
+    16 & [3, 128, 64, 16, 8, 1] & \text{tanh\_fast} & \text{AdamW} & 30 & 0.02362 & 0.05900 \\
+    17 & [3, 128, 64, 16, 8, 1] & \text{swish} & \text{AdamW} & 15 & 0.01055 & 0.13962 \\
+    18 & [3, 128, 64, 16, 8, 1] & \text{swish} & \text{AdamW} & 30 & 0.01053 & 0.15630 \\
+    \hline
+\end{array}
+\end{aligned}$$
+
+Si vemos parecen overfittear bastante por la diferencias de Loss finales. Veamos modelos mas simples, en este caso la exploración para:
+## Arquitecturas con 3 capas
+
+$\begin{aligned}
+& \begin{array}{ccccccc}
+    \hline
+    \text{ID} & \text{Arq} & \text{Activ} & \text{Optim} & \text{BatchS} & \text{LossTrain} & \text{LossPredict} \\
+    \hline
+    1 & [3, 32, 32, 16, 1] & \text{relu} & \text{AdamW} & 15 & 0.02911 & 0.03140 \\
+    2 & [3, 32, 32, 16, 1] & \text{relu} & \text{AdamW} & 30 & 0.02980 & 0.03078 \\
+    3 & [3, 32, 32, 16, 1] & \text{tanh\_fast} & \text{AdamW} & 15 & 0.02321 & 0.06584 \\
+    4 & [3, 32, 32, 16, 1] & \text{tanh\_fast} & \text{AdamW} & 30 & 0.03054 & 0.03023 \\
+    5 & [3, 32, 32, 16, 1] & \text{swish} & \text{AdamW} & 15 & 0.02968 & 0.02929 \\
+    6 & [3, 32, 32, 16, 1] & \text{swish} & \text{AdamW} & 30 & 0.03007 & 0.02873 \\
+    7 & [3, 32, 64, 16, 1] & \text{relu} & \text{AdamW} & 15 & 0.01792 & 0.15084 \\
+    8 & [3, 32, 64, 16, 1] & \text{relu} & \text{AdamW} & 30 & 0.02948 & 0.02958 \\
+    9 & [3, 32, 64, 16, 1] & \text{tanh\_fast} & \text{AdamW} & 15 & 0.02412 & 0.07201 \\
+    10 & [3, 32, 64, 16, 1] & \text{tanh\_fast} & \text{AdamW} & 30 & 0.03021 & 0.03085 \\
+    11 & [3, 32, 64, 16, 1] & \text{swish} & \text{AdamW} & 15 & 0.02855 & 0.04021 \\
+    12 & [3, 32, 64, 16, 1] & \text{swish} & \text{AdamW} & 30 & 0.03007 & 0.02893 \\
+    13 & [3, 128, 64, 16, 1] & \text{relu} & \text{AdamW} & 15 & 0.02904 & 0.03047 \\
+    14 & [3, 128, 64, 16, 1] & \text{relu} & \text{AdamW} & 30 & 0.02808 & 0.02961 \\
+    15 & [3, 128, 64, 16, 1] & \text{tanh\_fast} & \text{AdamW} & 15 & 0.02958 & 0.09842 \\
+    16 & [3, 128, 64, 16, 1] & \text{tanh\_fast} & \text{AdamW} & 30 & 0.03019 & 0.03787 \\
+    17 & [3, 128, 64, 16, 1] & \text{swish} & \text{AdamW} & 15 & 0.01005 & 0.13325 \\
+    18 & [3, 128, 64, 16, 1] & \text{swish} & \text{AdamW} & 30 & 0.02911 & 0.03145 \\
+    19 & [3, 5, 16, 8, 1] & \text{relu} & \text{AdamW} & 15 & 0.03024 & 0.03007 \\
+    20 & [3, 5, 16, 8, 1] & \text{relu} & \text{AdamW} & 30 & 0.02799 & 0.03101 \\
+    21 & [3, 5, 16, 8, 1] & \text{tanh\_fast} & \text{AdamW} & 15 & 0.02013 & 0.30684 \\
+    22 & [3, 5, 16, 8, 1] & \text{tanh\_fast} & \text{AdamW} & 30 & 0.02650 & 0.11933 \\
+    23 & [3, 5, 16, 8, 1] & \text{swish} & \text{AdamW} & 15 & 0.02956 & 0.03025 \\
+    24 & [3, 5, 16, 8, 1] & \text{swish} & \text{AdamW} & 30 & 0.02835 & 0.03804 \\
+    25 & [3, 16, 32, 16, 1] & \text{relu} & \text{AdamW} & 15 & 0.03031 & 0.04004 \\
+    26 & [3, 16, 32, 16, 1] & \text{relu} & \text{AdamW} & 30 & 0.02983 & 0.05841 \\
+    27 & [3, 16, 32, 16, 1] & \text{tanh\_fast} & \text{AdamW} & 15 & 0.00505 & 0.15298 \\
+    28 & [3, 16, 32, 16, 1] & \text{tanh\_fast} & \text{AdamW} & 30 & 0.01589 & 0.08948 \\
+    29 & [3, 16, 32, 16, 1] & \text{swish} & \text{AdamW} & 15 & 0.01116 & 0.13723 \\
+    30 & [3, 16, 32, 16, 1] & \text{swish} & \text{AdamW} & 30 & 0.00988 & 0.10878 \\
+    \hline
+\end{array}
+\end{aligned}$
+
+Veamos mejor las arquitecturas 9  de cuatro capas y la arquitectura 6 de 3 capas que tienen los menores loss de predicción. 
+
+$$\begin{aligned}
+& \begin{array}{ccccccc}
+9 & [3, 32, 64, 16, 8, 1] & \text{tanh\_fast} & \text{AdamW} & 15 & 0.02860 & 0.02959 \\
+6 & [3, 32, 32, 16, 1] & \text{swish} & \text{AdamW} & 30 & 0.03007 & 0.02873
+\end{array}
+\end{aligned}$$
+"
+
+# ╔═╡ 37559f37-caa3-40f1-bacb-b7921713f5ab
+md"Empecemos con la la arquitectura 6, veamos particularmente la evolución del Loss en función de las épocas de entrenamiento."
+
+# ╔═╡ b5437a4d-9614-4a5b-9cdd-1f16c88619bd
+PlutoUI.Resource("https://imgur.com/BLyYYey.png")
+
+# ╔═╡ 0d7a3bfa-70f3-41a7-94a7-d98da5fd3845
+md"Por la cantidad de épocas no llega al overfitting pero tampoco predice bien las señales"
+
+# ╔═╡ 3175bee3-910f-48b9-9bca-99d716ae3260
+PlutoUI.Resource("https://imgur.com/2k0kQOa.png")
+
+# ╔═╡ 6ba94324-60ae-4f2b-8341-b7e7ce6504cf
+md"Por el loss no hace falta ver que la arquitectura con 4 capas da algo similar."
+
+# ╔═╡ 4ecfc829-2e1f-4c77-bdfa-32e5f5842242
+md"## Otros fracasos"
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -686,6 +796,14 @@ version = "17.4.0+0"
 # ╟─60af69bb-7ec1-4afe-83cc-d7cfcd166f08
 # ╟─f4fb8923-92f5-44ef-ba8e-b25af2974b34
 # ╠═71f87e48-c3f8-479d-9db5-3a7b9c4c1928
-# ╠═2b27f6d5-b80d-40aa-abf6-a1d6462887ed
+# ╟─2b27f6d5-b80d-40aa-abf6-a1d6462887ed
+# ╠═6cc43322-da4c-4468-a9c0-f65b77ee59f0
+# ╟─660faace-2bde-46f9-9bcb-986572cb76f5
+# ╟─37559f37-caa3-40f1-bacb-b7921713f5ab
+# ╟─b5437a4d-9614-4a5b-9cdd-1f16c88619bd
+# ╟─0d7a3bfa-70f3-41a7-94a7-d98da5fd3845
+# ╠═3175bee3-910f-48b9-9bca-99d716ae3260
+# ╟─6ba94324-60ae-4f2b-8341-b7e7ce6504cf
+# ╠═4ecfc829-2e1f-4c77-bdfa-32e5f5842242
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
