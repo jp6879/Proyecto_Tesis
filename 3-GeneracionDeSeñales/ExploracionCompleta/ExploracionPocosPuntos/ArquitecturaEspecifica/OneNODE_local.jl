@@ -10,6 +10,7 @@ using ComponentArrays, Optimization, OptimizationOptimJL, OptimizationFlux
 using Interpolations
 using OrdinaryDiffEq
 using IterTools: ncycle
+using DiffEqFlux
 
 using Plots
 # include("/home/juan.morales/ExploracionCompleta/UtilsRepresentative.jl")
@@ -147,7 +148,7 @@ Signals_valid = Signals_rep[:,indexes_valid]
 Signals_train = Signals_rep[:,indexes_train]
 
 # Calculamos primero la recta con estos dos puntos
-recta_param_train = calucla_recta(ttrain, ttrain[end], Signals_train[:,end], ttrain[1], Signals_train[:,1])'
+recta_param_train = calucla_recta(t, t[end], Signals_rep[:,end], t[1], Signals_rep[:,1])'
 
 recta_param_train
 
@@ -167,10 +168,8 @@ end
 
 Signals_derivadas_train
 
-extra_parameters = Signals_derivadas_train
-extra_parameters2 = recta_param_train
-extra_parameters_valid = Signals_derivadas_valid
-extra_parameters_valid2 = recta_param_train
+extra_parameters = recta_param_train
+extra_parameters_valid = recta_param_train
 
 # Todas las señales tienen la misma condición inicial U0 = 1
 U0 = ones32(size(Signals_rep)[1])
@@ -179,18 +178,22 @@ U0 = ones32(size(Signals_rep)[1])
 actual_id = 1
 
 #Definimos el batch size
-batch_size = 25
+batch_size = 15
 
 # Vamos a crear el dataloader para el entrenamiento de la NODE con mini-batchs
-train_loader = Flux.Data.DataLoader((Signals_train, ttrain), batchsize = batch_size)
+train_loader = Flux.Data.DataLoader((Signals_rep, t), batchsize = batch_size)
 
 # Función de activación
-activation = tanh_fast
+activation = relu
 
-nn = Chain(Dense(3, 64, activation), Dense(64, 32, activation), Dense(32, 1))
+nn = Chain(Dense(4, 32),
+           Dense(32, 64, activation),
+           Dense(64, 16, activation),
+           Dense(16, 8, activation),
+           Dense(8, 1))
 
 # Tomamos un learning rate de 0.001
-η = 5e-3
+η = 5e-2
 
 # Vamos a tomar 1000 épocas para entrenar todas las arquitecturas
 epochs = 1000
@@ -209,27 +212,26 @@ opt = AdamW(η)
 tspan = (0f0, 1f0)
 
 # Función que resuelve la ODE con los parametros extra y las condiciones iniciales que instanciemos y nos regresa la solución en un arreglo
-function predict_NeuralODE(u0, parametros, parametros2, time_batch)
+function predict_NeuralODE(u0, parametros, time_batch)
     # dSdt = NN(S, parametros_extra) 
-    function dSdt(u, p, t; parametros_extra = parametros, parametros_extra2 = parametros2)
+    function dSdt(u, p, t; parametros_extra = parametros)
         indx = f(t, parametros)
         parametros_actuales = parametros[indx] # Selecciona los parametros extra en el tiempo t
-        parametros_actuales_2 = parametros2[indx]
-        entrada_red = vcat(u, parametros_actuales, parametros_actuales_2) # Concatena los el valor de S(t) con los parametros extra en el tiempo t
+        entrada_red = vcat(u, parametros_actuales) # Concatena los el valor de S(t) con los parametros extra en el tiempo t
         return re(p)(entrada_red) # Regresa la salida de la red neuronal re creada con los parámetros p
     end
 
     prob = ODEProblem(dSdt, u0, tspan)
-
+    
     return Array(solve(prob, Tsit5(), dtmin=1e-9 , u0 = u0, p = p, saveat = time_batch, reltol = 1e-5, abstol = 1e-5)) # Regresa la solución de la ODE
 end
 
 # Función que predice las señales para un conjunto de condiciones iniciales y parámetros extra
-function Predict_Singals(U0, parametros_extra, parametros_extra2, time_batch)
+function Predict_Singals(U0, parametros_extra, time_batch)
     Predicted_Signals = zeros(size(time_batch))
     for i in 1:length(U0)
         u0 = Float32[U0[i]]
-        predicted_signal = predict_NeuralODE(u0, parametros_extra[:, i], parametros_extra2[:, i], time_batch)[1, :]
+        predicted_signal = predict_NeuralODE(u0, parametros_extra[:, i], time_batch)[1, :]
         Predicted_Signals = hcat(Predicted_Signals, predicted_signal)
     end    
     Predicted_Signals[:,2:end]
@@ -262,12 +264,12 @@ end
 # y_total = vcat(y, y_forecasted)
 
 function loss_node(batch, time_batch, lamb = 0.1)
-    y = Predict_Singals(U0, extra_parameters, extra_parameters2, time_batch)
+    y = Predict_Singals(U0, extra_parameters, time_batch)
     return Flux.mse(y, batch') #+ lamb * (penalization_term(time_batch, y))
 end
 
 function loss_valid(batch, time_batch, lamb = 0.1)
-    y = Predict_Singals(U0, extra_parameters_valid, extra_parameters2, time_batch)
+    y = Predict_Singals(U0, extra_parameters_valid, time_batch)
     return Flux.mse(y, batch') #+ lamb * (penalization_term(time_batch, y))
 end
 
@@ -279,20 +281,20 @@ callback = function ()
     global iter += 1
     if iter % (length(train_loader)) == 0
         epoch = Int(iter / length(train_loader))
-        actual_loss = loss_node(Signals_train, ttrain)
+        actual_loss = loss_node(Signals_rep, t)
         forecast_loss = loss_valid(Signals_valid, tvalid)
         println("Epoch = $epoch || Loss: $actual_loss || Loss Forecast: $forecast_loss")
         push!(loss, actual_loss)
         push!(loss_valid_array, forecast_loss)
-        # if epoch % 20 == 0
-        #     plot_predictions = scatter(ttrain, Signals_train[1,:], label = "Señal σ = $(column_sigmas_rep[1]) lcm = $(column_lcm_rep[1])", xlabel = "t", ylabel = "S(t)", title = "Predicción de señales", lw = 2, tickfontsize=12, labelfontsize=15, legendfontsize=11, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10)
-        #     plot!(t, Predict_Singals(1, recta_param_train[:,1], t), label = "Entrenamiento", xlabel = "t", ylabel = "S(t)", title = "Predicción de señales", lw = 2, color = :red, markershape = :circle)
+        if epoch % 20 == 0
+            plot_predictions = scatter(t, Signals_rep[1,:], label = "Señal σ = $(column_sigmas_rep[1]) lcm = $(column_lcm_rep[1])", xlabel = "t", ylabel = "S(t)", title = "Predicción de señales", lw = 2, tickfontsize=12, labelfontsize=15, legendfontsize=11, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10)
+            plot!(t, Predict_Singals(1, extra_parameters[:,1], t), label = "Prediccion", xlabel = "t", ylabel = "S(t)", title = "Predicción de señales", lw = 2, color = :red, markershape = :circle)
 
-        #     scatter!(ttrain, Signals_train[2,:], label = "Señal σ = $(column_sigmas_rep[2]) lcm = $(column_lcm_rep[2])")
-        #     plot!(t, Predict_Singals(1, recta_param_train[:,2], t), label = "Entrenamiento", xlabel = "t", ylabel = "S(t)", title = "Predicción de señales", lw = 2, color = :red, markershape = :circle)
+            scatter!(t, Signals_rep[2,:], label = "Señal σ = $(column_sigmas_rep[2]) lcm = $(column_lcm_rep[2])")
+            plot!(t, Predict_Singals(1, extra_parameters[:,2], t), label = "Prediccion", xlabel = "t", ylabel = "S(t)", title = "Predicción de señales", lw = 2, color = :red, markershape = :circle)
 
-        #     display(plot_predictions)
-        # end
+            display(plot_predictions)
+        end
     end
     return false
 end

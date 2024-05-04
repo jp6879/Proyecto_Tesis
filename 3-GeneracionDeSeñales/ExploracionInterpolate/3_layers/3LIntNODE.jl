@@ -1,0 +1,466 @@
+# Progarma para la exploración de hiperparámetros en una Neural Ordinary Differential Equations (NODE) con Mini-Batchs
+using Flux
+using Flux: train!
+using DataFrames
+using CSV
+using DifferentialEquations
+using SciMLSensitivity
+using ComponentArrays, Optimization, OptimizationOptimJL, OptimizationFlux
+using Interpolations
+using OrdinaryDiffEq
+using IterTools: ncycle
+using CubicSplines
+
+###################################################################################
+# Parámetros fijos
+# Lo que dejamos constante es el número de compartimientos, el rango de tamaños de correlación lc, el tiempo de simulación final y el muestreo de tiempos
+N = 5000
+time_sample_lenght = 1000
+
+# Rango de tamaños de compartimientos en μm
+l0 = 0.01
+lf = 45
+
+# Tiempo final de simulación en s
+tf = 1
+
+# Ahora generamos los datos para eso necesitamos hacer el sampling de los lc y los t
+lcs = range(l0, lf, length = N)
+
+# path_read = "C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/1-GeneracionDeDatos/Datos_Final/datos_PCA"
+path_read = "/home/juan.morales/datos_PCA"
+
+# Parametros que se varian
+# Rango de tamaños medios de correlación en μm
+lcms = 0.5:0.01:6
+sigmas = 0.01:0.01:1
+
+###################################################################################
+# Vamos a hacer una función que nos permita calcular las derivadas de las señales
+# Para esto vamos a usar diferencias finitas centradas
+# La función recibe como argumentos el arreglo de señales y el arreglo de tiempos
+# La función regresa un arreglo de derivadas de las señales
+
+function derivate_signals(t,signal)
+    # Calcula el tamaño de la ventana
+    w = 1
+    # Calcula el tamaño de la señal
+    n = length(signal)
+    # Inicializa el arreglo de derivadas
+    derivadas = zeros(n)
+    for i in 1:n
+        # Encuentra los índices de la ventana
+        inicio = max(1, i-w)
+        final = min(n, i+w)
+        # Utiliza diferencias finitas centradas si es posible
+        if inicio != i && final != i
+            derivadas[i] = (signal[final] - signal[inicio]) / (t[final] - t[inicio])
+        elseif inicio == i
+            # Diferencia hacia adelante si estamos en el comienzo del arreglo
+            derivadas[i] = (signal[i+1] - signal[i]) / (t[i+1] - t[i])
+        else
+            # Diferencia hacia atrás si estamos al final del arreglo
+            derivadas[i] = (signal[i] - signal[i-1]) / (t[i] - t[i-1])
+        end
+    end
+    return derivadas
+end
+
+
+function recta(x1, y1, x0 = 0, y0 = 1)
+    m = (y1 - y0) / (x1 - x0)
+    b = y0
+    function evalue_recta(x)
+        return m .* x .+ b
+    end
+    return evalue_recta
+end
+
+###################################################################################
+
+# Funcion para leer las señales desde el path_read
+function GetSignals(path_read)
+    dataSignals = CSV.read(path_read * "/dataSignals.csv", DataFrame)
+    dataSignals = Matrix(dataSignals)
+    return dataSignals
+end
+
+# Funcion que toma las señales representativas para un conjunto de sigmas y lcms además las muestrea según el muestreo corto y largo
+function Get_Rep_Signals(indexes, sampled_sigmas, lcm_range, path_read, muestreo_corto, muestreo_largo)
+    dataSignals = Float32.(GetSignals(path_read))
+    Signals_rep = Float32.(Matrix(dataSignals[:,indexes]'))
+    Signals_rep_short = Signals_rep[:,1:muestreo_corto:1000]
+    Signals_rep_long = Signals_rep[:,1001:muestreo_largo:end]
+    Signals_rep = hcat(Signals_rep_short, Signals_rep_long)
+    return Signals_rep
+end
+
+###################################################################################
+# Función que idientifca las señales que se van a utilizar para el entrenamiento de la NODE con lcm y σ
+function Get_Signals_Test_Parameters(lcms,sigmas)
+    dim1 = dimlcm = length(lcms)
+    dim2 = dimsigma = length(sigmas)
+
+    column_lcm = zeros(dim1*dim2)
+    column_sigmas = zeros(dim1*dim2)
+    aux_lcm = collect(lcms)
+    aux_sigmas = collect(sigmas)
+
+    for i in 1:dim1
+        for j in 1:dim2
+            column_lcm[(i - 1)*dim2 + j] = aux_lcm[i]
+            column_sigmas[(i - 1)*dim2 + j] = aux_sigmas[j]
+        end
+    end
+    
+    return column_lcm, column_sigmas
+end
+
+###################################################################################
+
+# Función que devuelve señales de prueba, sus derivadas y los parámetros con los que se generaron
+function Get_Signals_Data_Training(path_read, lcms, sigmas, sampled_sigmas, lcm_range, muestreo_corto, muestreo_largo, t)
+    # Obtenemos primero los parámetros con los que se generaron las señales
+    column_lcm, column_sigmas = Get_Signals_Test_Parameters(lcms,sigmas)
+    df_SignalsParams = DataFrame(
+        sigmas = column_sigmas,
+	    lcm = column_lcm,
+	)
+    indexes = []
+    # A partir de ciertos sigmas dados por sampled_sigmas y un rango de lcm dado por lcm_range, obtenemos las señales representativas
+    for sigma in sampled_sigmas
+        find_rows = findall(x -> x == sigma, df_SignalsParams.sigmas)[lcm_range]
+        push!(indexes, find_rows)
+    end
+    # Indices de estas señales
+    indexes = vcat(indexes...)
+    # Obtenemos las señales representativas ya muestreadas
+    Signals_rep = Get_Rep_Signals(indexes, sampled_sigmas, lcm_range, path_read, muestreo_corto, muestreo_largo)
+    # Derivadas de las señales
+    Signals_rep_derivadas = zeros(size(Signals_rep))
+    for i in 1:size(Signals_rep)[1]
+        Signals_rep_derivadas[i,:] = derivate_signals(t,Signals_rep[i,:])
+    end
+    Signals_rep_derivadas = Float32.(Matrix(Signals_rep_derivadas'))
+    # Normalizamos las derivadas
+    for i in 1:size(Signals_rep)[1]
+        Signals_rep_derivadas[:,i] = Signals_rep_derivadas[:,i] ./ maximum(abs.(Signals_rep_derivadas[:,i]))
+    end
+    column_lcm_rep = column_lcm[indexes]
+    column_sigmas_rep = column_sigmas[indexes]
+    return Signals_rep, Signals_rep_derivadas, column_lcm_rep, column_sigmas_rep
+end
+
+###################################################################################
+
+function get_signals_deriv_valid(tvalid, Signals_valid)
+    Signals_derivadas_valid = zeros(size(Signals_valid))
+
+    # Obtenemos las derivadas de las señales de validación
+    for i in 1:size(Signals_valid)[1]
+        Signals_derivadas_valid[i,:] = derivate_signals(tvalid,Signals_valid[i,:])
+    end
+
+    # La transponemos y la convertimos a Float32
+    Signals_derivadas_valid = Float32.(Matrix(Signals_derivadas_valid'))
+
+    # Normalizamos las derivadas
+    for i in 1:size(Signals_valid)[1]
+        Signals_derivadas_valid[:,i] = Signals_derivadas_valid[:,i] ./ maximum(abs.(Signals_derivadas_valid[:,i]))
+    end
+
+    return Signals_derivadas_valid
+end
+
+# Función que devuelve un interpolador de la derivada calculada utilizando los puntos
+# de la señal que se tienen
+function get_interpolated_deriv(tvalid, Signals_derivadas_valid)
+    itp_derivadas = []
+    # Interpolamos las derivadas
+    for i in 1:size(Signals_derivadas_valid)[2]
+        push!(itp_derivadas, CubicSpline(tvalid, Signals_derivadas_valid[:,i], extrapl = [2,], extrapr=[2,]))
+    end
+    return itp_derivadas
+end
+
+###################################################################################
+
+# Función que crea el modelo de la red neuronal que va a estar dentro de la ODE
+function create_model(layers::Vector{Int}, activation)
+    activations = [activation for i in 1:length(layers) - 2]
+    return Chain([Dense(layers[i], layers[i+1], activations[i]) for i in 1:length(layers) - 2]..., Dense(layers[end-1], layers[end]))
+end
+
+###################################################################################
+
+# Función que entrena la NODE con mini-batchs
+function Train_Neural_ODE(nn, U0, extra_parameters, extra_parameters2, 
+                    extra_parameters_valid ,num_epochs, train_loader, 
+                    opt, eta, Signals, Signals_forecast, t, tforecast, lamb, actual_id)
+    
+    # Tiempo sobre el cual resolver
+    tspan = (0f0, 1f0)
+    
+    # Para entrenar la red tenemos que extraer los parametros de la red neuronal en su condicion inicial
+    p, re = Flux.destructure(nn) 
+
+    # Si existe el archivo con los parámetros de la red previamente los cargamos
+    if isfile("/home/juan.morales/ExploracionInterpolate/3_layers/Parameters/$(actual_id)_Parameters.csv")
+        theta = CSV.read("/home/juan.morales/ExploracionInterpolate/3_layers/Parameters/$(actual_id)_Parameters.csv", DataFrame)
+        p = Float32.(theta[:,1])
+    else
+        println("No se encontraron los parámetros de la red neuronal")
+    end
+    
+    # Optimizardor
+    opt = opt(eta)
+
+    # Función que resuelve la ODE con los parametros extra y las condiciones iniciales que instanciemos y nos regresa la solución en un arreglo
+    function predict_NeuralODE(u0, parametros, parametros2, time_batch)
+        # dSdt = NN(S, parametros_extra) 
+        function dSdt(u, p, t; parametros_extra = parametros, parametros_extra2 = parametros2)
+            parametros_actuales = Float32(parametros_extra[t]) # Ahora son de teimpo continuo
+            parametros_actuales_2 = Float32(parametros_extra2(t)) # Ahora son de tiempo continuo
+            entrada_red = vcat(u, parametros_actuales, parametros_actuales_2) # Concatena los el valor de S(t) con los parametros extra en el tiempo t
+            return re(p)(entrada_red) # Regresa la salida de la red neuronal re creada con los parámetros p
+        end
+
+        prob = ODEProblem(dSdt, u0, tspan)
+
+        return Array(solve(prob, Tsit5(), dtmin=1e-9 , u0 = u0, p = p, saveat = time_batch, reltol = 1e-5, abstol = 1e-5)) # Regresa la solución de la ODE
+    end
+
+    # Función que predice las señales para un conjunto de condiciones iniciales y parámetros extra
+    function Predict_Singals(U0, parametros_extra, parametros_extra2, time_batch)
+        Predicted_Signals = zeros(size(time_batch))
+        for i in 1:length(U0)
+            u0 = Float32[U0[i]]
+            predicted_signal = predict_NeuralODE(u0, parametros_extra[i], parametros_extra2[i], time_batch)[1, :]
+            Predicted_Signals = hcat(Predicted_Signals, predicted_signal)
+        end    
+        Predicted_Signals[:,2:end]
+    end
+
+    # Función de penalización para tratar de mantener la señal monotonamente decrecente
+    function penalization_term(time_batch,y)
+        pen = sum(sum.(max.(y[2:end,:] .- y[1:end-1,:], 0)))
+        return pen
+    end
+
+    # Función de pérdida que vamos a minimizar, recibe un batch de señales y un batch de tiempos
+    function loss_node(batch, time_batch, lamb = 0.1)
+        y = Predict_Singals(U0, extra_parameters, extra_parameters2, time_batch)
+        return Flux.mse(y, batch') + lamb * (penalization_term(time_batch, y))
+    end
+    
+    # Función de Loss de validación, acá usamos las derivadas de la señal con pocos puntos
+    function loss_valid(batch, time_batch, lamb = 0.1)
+        y = Predict_Singals(U0, extra_parameters_valid, extra_parameters2, time_batch)
+        return Flux.mse(y, batch') + lamb * (penalization_term(time_batch, y))
+    end
+
+    # Función de callback para guardar el loss cada epoch
+    global iter = 0
+    loss = []
+    loss_forecast = []
+    callback = function ()
+        global iter += 1
+        if iter % (length(train_loader)) == 0
+            epoch = Int(iter / length(train_loader))
+            actual_loss = loss_node(Signals, t)
+            forecast_loss = loss_valid(Signals_forecast, tforecast)
+            println("Epoch = $epoch || Loss: $actual_loss || Loss valid: $forecast_loss")
+            push!(loss, actual_loss)
+            push!(loss_forecast, forecast_loss)
+        end
+        return false
+    end
+
+    # Entrenamos la red neuronal con mini-batchs
+    Flux.train!(loss_node, Flux.params(p), ncycle(train_loader, num_epochs), opt, cb = callback)
+    
+    # Devolvemos el loss final y los parametros de la red neuronal
+    return loss, p, loss_forecast
+
+end
+
+function main()
+    # Arquitecturas que vamos a utilizar
+    architectures = [
+        [[3, 5, 16, 8, 1], relu], # Tres capas ocultas muy simples
+        [[3, 5, 16, 8, 1], tanh_fast], # Misma con activación tanh_fast
+        [[3, 5, 16, 8, 1], swish], # Misma con activación swish
+
+        [[3, 16, 32, 16, 1], relu], # Tres capas ocultas simple
+        [[3, 16, 32, 16, 1], tanh_fast], # Misma con activación tanh_fast
+        [[3, 16, 32, 16, 1], swish], # Misma con activación swish
+        ]
+
+    # Optimizadores que vamos a utilizar
+    optimizers = [opt for opt in [AdamW]]
+
+    # Numero de mini-batchs que vamos a utilizar 
+    batchs_size = [15, 30]
+
+    # Vector de configuraciones que vamos a utilizar
+    configuraciones = []
+
+    for arch in architectures
+        for opt in optimizers
+            for batch_size in batchs_size
+                push!(configuraciones, (arch, opt, batch_size))
+            end
+        end
+    end
+
+    path_read = "/home/juan.morales/datos_PCA"
+    # path_read = "C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/1-GeneracionDeDatos/Datos_Final/datos_PCA"
+    
+    # Distintos muestreos de tiempo
+    t_short = Float32.(collect(range(0, 0.1, length = 1000)))
+    t_long = Float32.(collect(range(0.1, 1, length = 100)))
+        
+    # Vamos a tomar un subconjunto de t para hacer el entrenamiento de la NODE para agilizar los tiempos de entrenamiento
+    muestreo_corto =  25 # Cada cuantos tiempos tomamos un timepo para entrenar la NODE
+    muestreo_largo = 5
+
+    # Esto da 100 tiempos 50 puntos desde 0 a 0.1 y 25 puntos desde 0.1 a 1
+    t_short = t_short[1:muestreo_corto:end]
+    t_long = t_long[1:muestreo_largo:end]
+    
+    t = vcat(t_short, t_long)
+
+    # Tomamos 1 sigma y 5 tamaños de compartimientos para cada sigma o sea 60 señales
+    sampled_sigmas =  [1.0]
+    lcm_range = 1:50:250
+    
+    # Obtenemos las señales representativas para un conjunto de sigmas y lcms
+    Signals_rep, Signals_rep_derivadas, column_lcm_rep, column_sigmas_rep = Get_Signals_Data_Training(path_read, lcms, sigmas, sampled_sigmas, lcm_range, muestreo_corto, muestreo_largo, t)
+
+    # Numero de puntos en el conjunto de validación
+    n_valid = 10
+    
+    # Paso para tomar los tiempos y señales de entrenamiento y de validación
+    step = floor(Int, length(t) / n_valid) + 1
+
+    # Tomamos los tiempos de entrenamiento y de validacion
+    tvalid = t[1:step:end]
+    ttrain = [t for t in t if t ∉ tvalid]
+
+    # En la validación y en el train tenemos que tener el primer y último tiempo
+    ttrain = vcat(0, ttrain)
+    tvalid = vcat(tvalid, ttrain[end])
+
+    # Indices de los tiempos de entrenamiento y de validación
+    indexes_train = [i for i in 1:length(t) if t[i] in ttrain]
+    indexes_valid = [i for i in 1:length(t) if t[i] in tvalid]
+
+    # Señaes de entrenamiento y de validacion
+    Signals_train = Signals_rep[:,indexes_train]
+    Signals_valid = Signals_rep[:,indexes_valid]
+
+    # Creamos las funciones de la recta
+    recta_funcs = []
+    for i in 1:size(Signals_rep)[1]
+        push!(recta_funcs, recta(t[end], Signals_rep[i,end], t[1], Signals_rep[i,1]))
+    end
+
+    # Derivadas de las señales de entrenamiento y de predicción
+    # Usemos absolutamente todos los puntos para las derivadas y el entrenamiento
+    Signals_derivadas_train = Signals_rep_derivadas
+    Signals_derivadas_valid = get_signals_deriv_valid(tvalid, Signals_valid)
+    
+    # Calculamos la interpolación de estas derivadas para poder usarlas en la ODE
+    itp_derivadas = get_interpolated_deriv(tvalid, Signals_derivadas_valid)
+
+    # Tomamos un learning rate de 0.001
+    eta = 5e-3
+
+    # Vamos a tomar 2000 épocas para entrenar todas las arquitecturas
+    epochs = 1500
+
+    # Todas las señales tienen la misma condición inicial U0 = 1
+    U0 = ones32(size(Signals_rep)[1])
+
+    # Para el entrenamiento en el cluster vamos iterando sobre las configuraciones y guardamos los resultados en archivos csv
+    
+    # architecture, opt, batch_size = configuraciones[1]
+    architecture, opt, batch_size = configuraciones[parse(Int128,ARGS[1])]
+
+    layers = architecture[1]
+    activation = architecture[2]
+
+    if activation == tanh_fast
+        activation_string = "tanh_fast"
+    elseif activation == relu
+        activation_string = "relu"
+    elseif activation == swish
+        activation_string = "swish"
+    end
+
+    if opt == AdamW
+        opt_string = "AdamW"
+    elseif opt == RMSProp
+        opt_string = "RMSProp"
+    end
+
+    # Vamos a crear el dataloader para el entrenamiento de la NODE con mini-batchs
+    train_loader = Flux.Data.DataLoader((Signals_rep, t), batchsize = batch_size)
+
+    # Vamos a crear el modelo de la red neuronal que va a estar dentro de la ODE
+    nn = create_model(layers, activation)
+    
+    # Parámetro de penalización
+    lambd = 0.1
+
+    # println("Arquitectura: $architecture", " || Optimizador: $opt", " || Tamaño de mini-batch: $batc_size", " || Loss: $(architecture_loss[end])", " || Loss Forecast: $(loss_forecast[end])")
+
+    # Número de modelo
+
+    # actual_id = 1
+    actual_id = parse(Int128,ARGS[1])
+
+    # Entrenamos una NODE con mini-batchs para cada arquitectura, optimizador y tamaño de mini-batch y guardamos el loss y los parametros de la red neuronal
+    architecture_loss, theta, loss_forecast = Train_Neural_ODE(nn, U0, itp_derivadas, recta_funcs, itp_derivadas, epochs, train_loader, opt, eta, Signals_rep, Signals_valid, t, tvalid, lambd, actual_id)
+
+    # Guardamos los hiperparámetros del entrenamiento y el loss final
+    actual_layer = string(layers)
+    actual_activation = activation_string
+    actual_optimizer = opt_string
+    actual_batch_size = batch_size
+    actual_loss_final_train = architecture_loss[end]
+    actual_loss_final_forecast = loss_forecast[end]
+
+    # Guardamos los resultados en un archivo csv
+    df_results_total = DataFrame(ID = actual_id, Arquitectura = actual_layer, Activación = actual_activation, Optimizador = actual_optimizer, Batch_Size = actual_batch_size, Loss_Final_Entrenamiento = actual_loss_final_train, Loss_Final_Predicción = actual_loss_final_forecast)
+
+    # CSV.write("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/Exploracion Paralelizada/RepresentativeTrain_NODE/Resultados/$(actual_id)_$(actual_layer)_$(actual_activation)_$(actual_optimizer)_$(actual_batch_size).csv", df_results_total)
+    CSV.write("/home/juan.morales/ExploracionInterpolate/3_layers/Resultados/$(actual_id)_$(actual_layer)_$(actual_activation)_$(actual_optimizer)_$(actual_batch_size).csv", df_results_total)
+    
+    # Guardamos los loss y los parametros de la red neuronal en archivos csv
+    Loss_Matrix = zeros((length(architecture_loss), 2))
+
+    for i in 1:length(architecture_loss)
+        Loss_Matrix[i,1] = architecture_loss[i]
+        Loss_Matrix[i,2] = loss_forecast[i]
+    end
+
+    df_losses = DataFrame(Loss_Matrix, :auto)
+
+    rename!(df_losses, Symbol("x1") => Symbol("Loss_Entrenamiento"))
+    rename!(df_losses, Symbol("x2") => Symbol("Loss_Predicción"))
+
+    # Chequeamos si existe previamente un archivo CSV y si existe concatenamos al actual
+    if isfile("/home/juan.morales/ExploracionInterpolate/3_layers/Losses/$(actual_id)_losses.csv")
+        df_losses = vcat(CSV.read("/home/juan.morales/ExploracionInterpolate/3_layers/Losses/$(actual_id)_losses.csv", DataFrame), df_losses)
+    end
+
+    # CSV.write("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/Exploracion Paralelizada/RepresentativeTrain_NODE/Losses/$(actual_id)_losses.csv", df_losses)
+    CSV.write("/home/juan.morales/ExploracionInterpolate/3_layers/Losses/$(actual_id)_losses.csv", df_losses)
+    
+    df_theta = DataFrame(reshape(theta, length(theta), 1), :auto)
+    # CSV.write("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/Exploracion Paralelizada/RepresentativeTrain_NODE/Parameters/$(actual_id)_Parameters.csv", df_losses)
+    CSV.write("/home/juan.morales/ExploracionInterpolate/3_layers/Parameters/$(actual_id)_Parameters.csv", df_theta)
+end
+
+main()

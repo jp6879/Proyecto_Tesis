@@ -100,7 +100,8 @@ t = vcat(t_short, t_long)
 
 # Tomamos 1 sigmas y 5 tamaños de compartimientos para cada sigma o sea 60 señales
 sampled_sigmas =  [1.0]
-lcm_range = 1:50:250
+# lcm_range = 1:50:250
+lcm_range = 1:25:125
 
 println("Sigmas: ", sampled_sigmas)
 println("Lcms: ", collect(lcms)[lcm_range])

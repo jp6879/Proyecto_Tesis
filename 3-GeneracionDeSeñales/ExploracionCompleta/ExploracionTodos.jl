@@ -494,7 +494,274 @@ PlutoUI.Resource("https://imgur.com/2k0kQOa.png")
 md"Por el loss no hace falta ver que la arquitectura con 4 capas da algo similar."
 
 # ╔═╡ 4ecfc829-2e1f-4c77-bdfa-32e5f5842242
-md"## Otros fracasos"
+md"## Otros
+
+Antes de añadir otro de los parámetros usamos todos los puntos para entrenar pocas señales. En estos casos tomamos el $\sigma = 1$, para distintos valores de $l_{cm} = 0.5,~0.75,~1.0,~1.25,~1.5$ $\mu$m. Estas señales son parecidas a las anteriores. Por lo que el embeeding que tenemos falla claramente. Los resultados para 3 y 4 capas dan lo siguiente:
+
+
+$$\begin{aligned}
+& \begin{array}{ccccccc}
+    \hline
+    \text{ID} & \text{Arq} & \text{Activ} & \text{Optim} & \text{BatchS} & \text{LossTrain} & \text{LossPredict} \\
+    \hline
+    1 & [2, 32, 64, 16, 1] & \text{relu} & \text{AdamW} & 15 & 0.01677 & 0.01736 \\
+    2 & [2, 32, 64, 16, 1] & \text{relu} & \text{AdamW} & 30 & 0.02128 & 0.02475 \\
+    3 & [2, 32, 64, 16, 1] & \text{tanh\_fast} & \text{AdamW} & 15 & 0.01898 & 0.01851 \\
+    4 & [2, 32, 64, 16, 1] & \text{tanh\_fast} & \text{AdamW} & 30 & 0.02189 & 0.02101 \\
+    5 & [2, 32, 64, 16, 1] & \text{swish} & \text{AdamW} & 15 & 0.01655 & 0.01621 \\
+    6 & [2, 32, 64, 16, 1] & \text{swish} & \text{AdamW} & 30 & 0.01778 & 0.01688 \\
+    7 & [2, 128, 64, 16, 1] & \text{relu} & \text{AdamW} & 15 & 0.01517 & 0.01640 \\
+    8 & [2, 128, 64, 16, 1] & \text{relu} & \text{AdamW} & 30 & 0.01671 & 0.01700 \\
+    9 & [2, 128, 64, 16, 1] & \text{tanh\_fast} & \text{AdamW} & 15 & 0.02049 & 0.01995 \\
+    10 & [2, 128, 64, 16, 1] & \text{tanh\_fast} & \text{AdamW} & 30 & 0.02105 & 0.02029 \\
+    11 & [2, 128, 64, 16, 1] & \text{swish} & \text{AdamW} & 15 & 0.01689 & 0.01652 \\
+    12 & [2, 128, 64, 16, 1] & \text{swish} & \text{AdamW} & 30 & 0.01577 & 0.01630 \\
+    \hline
+\end{array}
+\end{aligned}$$
+
+$$\begin{aligned}
+& \begin{array}{ccccccc}
+    \hline
+    \text{ID} & \text{Arq} & \text{Activ} & \text{Optim} & \text{BatchS} & \text{LossTrain} & \text{LossPredict} \\
+    \hline
+    1 & [2, 128, 64, 32, 16, 1] & \text{relu} & \text{AdamW} & 15 & 0.01487 & 0.01648 \\
+    1 & [2, 128, 64, 32, 16, 1] & \text{relu} & \text{AdamW} & 15 & 0.01498 & 0.01635 \\
+    2 & [2, 128, 64, 32, 16, 1] & \text{relu} & \text{AdamW} & 30 & 0.01557 & 0.01699 \\
+    3 & [2, 128, 64, 32, 16, 1] & \text{tanh\_fast} & \text{AdamW} & 15 & 0.01636 & 0.01659 \\
+    4 & [2, 128, 64, 32, 16, 1] & \text{tanh\_fast} & \text{AdamW} & 30 & 0.01767 & 0.01767 \\
+    5 & [2, 128, 64, 32, 16, 1] & \text{swish} & \text{AdamW} & 15 & 0.01530 & 0.01612 \\
+    6 & [2, 128, 64, 32, 16, 1] & \text{swish} & \text{AdamW} & 30 & 0.01565 & 0.01665 \\
+    \hline
+\end{array}
+\end{aligned}$$
+
+
+"
+
+# ╔═╡ 1e2b0e2a-31de-4cde-8a87-6713e6579a7c
+md"Si bien los loss de predicción bajan un poquito los de entrenamineto son peores que los anteriores por lo que siguen siendo las mismas pobres predicciones.
+
+Veamos el loss y las predicciones de la arquietctura que mejor lo hizo en este caso la que tiene menor loss en las prediccione es la arquitectura con ID 5 pque tiene cuatro capas ocultas:
+
+$$\begin{aligned}
+& \begin{array}{ccccccc}
+    5 & [2, 128, 64, 32, 16, 1] & \text{swish} & \text{AdamW} & 15 & 0.01530 & 0.01612 \\
+\end{array}
+\end{aligned}$$"
+
+# ╔═╡ 9b2f1a7e-8cd6-4a46-9668-b7b6549b997a
+PlutoUI.Resource("https://imgur.com/DR6ZfnS.png")
+
+# ╔═╡ d29f28e4-aa69-408b-8409-1c997571b846
+md"Vemos que el error de Loss parece aumentar para la predicción con los puntos de validación mientras que el loss de entrenamiento baja a un ritmo lento."
+
+# ╔═╡ 3fb6b95d-7418-4c46-b37a-b3e6b951b446
+md"Veamos ahora las predicciones"
+
+# ╔═╡ 59f81979-3b50-4fe1-9806-2fb91f0ae7c1
+PlutoUI.Resource("https://imgur.com/vUOB13i.png")
+
+# ╔═╡ 98365ca7-cf79-49ac-b9db-70947c235c33
+md"### ¿Es la cantidad de puntos?
+En los anteriores entrenamientos usamos 60 y 50 puntos de las señales para entrenar las redes, probamos esto para únicamente 30 puntos en el mismo caso que antes, útilizando solo como parámetro extra las derivadas calculadas con estos 30 puntos.
+
+Los resultados para una arquitectura de 3 capas da lo siguiente
+
+$$\begin{aligned}
+& \begin{array}{ccccccc}
+    \hline
+    \text{ID} & \text{Arq} & \text{Activ} & \text{Optim} & \text{BatchS} & \text{LossTrain} & \text{LossPredict} \\
+    \hline
+    1 & [2, 32, 64, 16, 1] & \text{relu} & \text{AdamW} & 5 & 0.00649 & 0.09001 \\
+    2 & [2, 32, 64, 16, 1] & \text{relu} & \text{AdamW} & 15 & 0.00864 & 0.04351 \\
+    3 & [2, 32, 64, 16, 1] & \text{tanh\_fast} & \text{AdamW} & 5 & 0.00618 & 0.06927 \\
+    4 & [2, 32, 64, 16, 1] & \text{tanh\_fast} & \text{AdamW} & 15 & 0.00451 & 0.06629 \\
+    5 & [2, 32, 64, 16, 1] & \text{swish} & \text{AdamW} & 5 & 0.01422 & 0.03350 \\
+    6 & [2, 32, 64, 16, 1] & \text{swish} & \text{AdamW} & 15 & 0.01376 & 0.02555 \\
+    7 & [2, 128, 64, 16, 1] & \text{relu} & \text{AdamW} & 5 & 0.00586 & 0.12099 \\
+    8 & [2, 128, 64, 16, 1] & \text{relu} & \text{AdamW} & 15 & 0.00388 & 0.12966 \\
+    9 & [2, 128, 64, 16, 1] & \text{tanh\_fast} & \text{AdamW} & 5 & 0.00691 & 0.09307 \\
+    10 & [2, 128, 64, 16, 1] & \text{tanh\_fast} & \text{AdamW} & 15 & 0.00384 & 0.08494 \\
+    11 & [2, 128, 64, 16, 1] & \text{swish} & \text{AdamW} & 5 & 0.01013 & 0.05643 \\
+    12 & [2, 128, 64, 16, 1] & \text{swish} & \text{AdamW} & 15 & 0.01049 & 0.11811 \\
+    \hline
+\end{array}
+\end{aligned}$$
+
+Los resultados de entrenamiento mejoran, sin embargo las predicciones siguen siendo igual de malas
+"
+
+# ╔═╡ e9bfa74b-fe80-40b8-addc-bce041940774
+md"## ¿Tomando conjuntos representativos?
+Algo que ya hicimos abordando el problema como predicción de series temporales en vez de tomar todos los puntos es probar si el problema está en que se necesita un conjunto mas amplio de señales para el entrenamiento. Esta se entrenaron solo modelos de 4 capas y se entrenaron combinaciones de las señales con los paraámetros:
+
+$\sigma = 0.01,~0.2,~0.4,~0.6,~0.8,~1.0$
+$l_{cm} = 0.5,~0.75,~1.0,~1.25,~1.5,~1.75,~2.0,~2.25,~2.5,~2.75$
+
+Los resultados se resumen en la siguiente tabla:
+
+$$\begin{aligned}
+& \begin{array}{ccccccc}
+    \hline
+    \text{ID} & \text{Arq} & \text{Activ} & \text{Optim} & \text{BatchS} & \text{LossTrain} & \text{LossPredict} \\
+    \hline
+    1 & [2, 128, 64, 32, 16, 1] & \text{relu} & \text{AdamW} & 15 & 0.01498 & 0.01635 \\
+    2 & [2, 128, 64, 32, 16, 1] & \text{relu} & \text{AdamW} & 30 & 0.01591 & 0.01699 \\
+    3 & [2, 128, 64, 32, 16, 1] & \text{tanh\_fast} & \text{AdamW} & 15 & 0.01883 & 0.01845 \\
+    4 & [2, 128, 64, 32, 16, 1] & \text{tanh\_fast} & \text{AdamW} & 30 & 0.02058 & 0.02009 \\
+    5 & [2, 128, 64, 32, 16, 1] & \text{swish} & \text{AdamW} & 15 & 0.01540 & 0.01604 \\
+    6 & [2, 128, 64, 32, 16, 1] & \text{swish} & \text{AdamW} & 30 & 0.01572 & 0.01669 \\
+    \hline
+\end{array}
+\end{aligned}$$
+
+
+"
+
+# ╔═╡ 48fe9cc7-2833-440d-943d-fb7d99ed84d9
+md"En este caso los resultados son parecido para todas las redes, la que mejor Loss de predicción tiene es la arquitectura 5, que es idéntica a la anterior. Veamos esta vez las predicciones"
+
+# ╔═╡ 6cc46127-d031-433b-ba4c-843fd2be2fc0
+PlutoUI.Resource("https://imgur.com/x62o6Ag.png")
+
+# ╔═╡ 28ce16aa-aee5-4fb8-91f6-9adb31d5c745
+md"Las predicciones siguien siendo malas para estas exploraciones"
+
+# ╔═╡ 878097ce-a953-4c64-894b-ba691593dfbd
+md"## ¿Con parámetros continutos?
+
+Los parámetros extra que estuvimos utilizando son solo puntos a distintos tiempos, ya sea de las señales o de la recta. Cuando la red hace una predicción lo hace en los tiempos que le pedimos que pueden no estar definidos para los parámetros extra. Algo que se puede hacer es tomar es una interpolación con los valores de las derivadas de las señales, así los parámetros extra serán continuos y no se tendrá este problema cunado se resuelve la ODE.
+
+Comenzamos otra vez con pocas señales tomando el entrenamiento para las mismas señales con $\sigma = 1$, para distintos valores de $l_{cm} = 0.5,~1.0,~1.5,~2.0,~2.5$ $\mu$m.
+
+las exploraciones con estos parámetros continuos se resumen en las siguientes tablas.
+
+"
+
+# ╔═╡ 12fae0f1-5cdf-4bfd-8b41-3f4d4da8c0aa
+md"#### Para una arquitectura con 3 capas
+
+$$\begin{aligned}
+& \begin{array}{ccccccc}
+    \hline
+    \text{ID} & \text{Arq} & \text{Activ} & \text{Optim} & \text{BatchS} & \text{LossTrain} & \text{LossPredict} \\
+    \hline
+    1 & [3, 5, 16, 8, 1] & \text{relu} & \text{AdamW} & 15 & 0.02743 & 0.02495 \\
+    2 & [3, 5, 16, 8, 1] & \text{relu} & \text{AdamW} & 30 & 0.02765 & 0.02503 \\
+    3 & [3, 5, 16, 8, 1] & \text{tanh\_fast} & \text{AdamW} & 15 & 0.02142 & 0.02049 \\
+    4 & [3, 5, 16, 8, 1] & \text{tanh\_fast} & \text{AdamW} & 30 & 0.02784 & 0.02492 \\
+    5 & [3, 5, 16, 8, 1] & \text{swish} & \text{AdamW} & 15 & 0.02736 & 0.02463 \\
+    6 & [3, 5, 16, 8, 1] & \text{swish} & \text{AdamW} & 30 & 0.02704 & 0.02435 \\
+    7 & [3, 16, 32, 16, 1] & \text{relu} & \text{AdamW} & 15 & 0.02756 & 0.02489 \\
+    8 & [3, 16, 32, 16, 1] & \text{relu} & \text{AdamW} & 30 & 0.02003 & 0.01942 \\
+    9 & [3, 16, 32, 16, 1] & \text{tanh\_fast} & \text{AdamW} & 15 & 0.01976 & 0.01932 \\
+    10 & [3, 16, 32, 16, 1] & \text{tanh\_fast} & \text{AdamW} & 30 & 0.02054 & 0.02003 \\
+    11 & [3, 16, 32, 16, 1] & \text{swish} & \text{AdamW} & 15 & 0.02183 & 0.02009 \\
+    12 & [3, 16, 32, 16, 1] & \text{swish} & \text{AdamW} & 30 & 0.02576 & 0.02226 \\
+    \hline
+\end{array}
+\end{aligned}$$
+
+"
+
+# ╔═╡ f4f8921d-ffb4-44f9-9cc7-402766498473
+md"#### Para una arquitectura con 4 capas
+
+$$\begin{aligned}
+& \begin{array}{ccccccc}
+    \hline
+    \text{ID} & \text{Arq} & \text{Activ} & \text{Optim} & \text{BatchS} & \text{LossTrain} & \text{LossPredict} \\
+    \hline
+    1 & [3, 32, 32, 16, 8, 1] & \text{relu} & \text{AdamW} & 15 & 0.02706 & 0.02466 \\
+    2 & [3, 32, 32, 16, 8, 1] & \text{relu} & \text{AdamW} & 30 & 0.02738 & 0.02479 \\
+    3 & [3, 32, 32, 16, 8, 1] & \text{tanh\_fast} & \text{AdamW} & 15 & 0.02063 & 0.01991 \\
+    4 & [3, 32, 32, 16, 8, 1] & \text{tanh\_fast} & \text{AdamW} & 30 & 0.02228 & 0.02053 \\
+    5 & [3, 32, 32, 16, 8, 1] & \text{swish} & \text{AdamW} & 15 & 0.02207 & 0.01948 \\
+    6 & [3, 32, 32, 16, 8, 1] & \text{swish} & \text{AdamW} & 30 & 0.02054 & 0.01989 \\
+    7 & [3, 32, 64, 16, 8, 1] & \text{relu} & \text{AdamW} & 15 & 0.02241 & 0.01984 \\
+    8 & [3, 32, 64, 16, 8, 1] & \text{relu} & \text{AdamW} & 30 & 0.02014 & 0.01990 \\
+    9 & [3, 32, 64, 16, 8, 1] & \text{tanh\_fast} & \text{AdamW} & 15 & 0.01540 & 0.01301 \\
+    10 & [3, 32, 64, 16, 8, 1] & \text{tanh\_fast} & \text{AdamW} & 30 & 0.01913 & 0.01570 \\
+    11 & [3, 32, 64, 16, 8, 1] & \text{swish} & \text{AdamW} & 15 & 0.02143 & 0.01879 \\
+    12 & [3, 32, 64, 16, 8, 1] & \text{swish} & \text{AdamW} & 30 & 0.02059 & 0.01982 \\
+    13 & [3, 128, 64, 16, 8, 1] & \text{relu} & \text{AdamW} & 15 & 0.02061 & 0.01894 \\
+    14 & [3, 128, 64, 16, 8, 1] & \text{relu} & \text{AdamW} & 30 & 0.02053 & 0.02049 \\
+    15 & [3, 128, 64, 16, 8, 1] & \text{tanh\_fast} & \text{AdamW} & 15 & 0.02158 & 0.02047 \\
+    16 & [3, 128, 64, 16, 8, 1] & \text{tanh\_fast} & \text{AdamW} & 30 & 0.02166 & 0.01974 \\
+    17 & [3, 128, 64, 16, 8, 1] & \text{swish} & \text{AdamW} & 15 & 0.02090 & 0.01894 \\
+    18 & [3, 128, 64, 16, 8, 1] & \text{swish} & \text{AdamW} & 30 & 0.01544 & 0.01488 \\
+    \hline
+\end{array}
+\end{aligned}$$
+"
+
+# ╔═╡ 0046f7de-c9fb-44df-91ae-d78fa8993c2a
+md"De estas la red que mejor predice es la 9 con 4 capas, vamos a ver el loss y las predicciones: "
+
+# ╔═╡ 384a261c-8560-4bbd-b0f3-09a2444685f3
+PlutoUI.Resource("https://imgur.com/fk7UswI.png")
+
+# ╔═╡ 2e57b008-99a1-415a-937e-f6832dfcd4ce
+PlutoUI.Resource("https://imgur.com/68KRQu8.png")
+
+# ╔═╡ 82876351-6189-416f-b9f5-05e219f89bc2
+function recta(x1, y1, x0 = 0, y0 = 1)
+    m = (y1 - y0) / (x1 - x0)
+    b = y0
+    function evalue_recta(x)
+        return m .* x .+ b
+    end
+    return evalue_recta
+end
+
+recta_funcs = []
+
+for i in 1:size(Signals_rep)[1]
+    push!(recta_funcs, recta(t[end], Signals_rep[i,end], t[1], Signals_rep[i,1]))
+end
+
+# Derivadas de las señales con pocos puntos para predecir
+Signals_derivadas_valid = zeros(size(Signals_valid))
+
+for i in 1:size(Signals_valid)[1]
+    Signals_derivadas_valid[i,:] = derivate_signals(tvalid,Signals_valid[i,:])
+end
+
+Signals_derivadas_valid = Float32.(Matrix(Signals_derivadas_valid'))
+
+# Normalizamos las derivadas
+for i in 1:size(Signals_valid)[1]
+    Signals_derivadas_valid[:,i] = Signals_derivadas_valid[:,i] ./ maximum(abs.(Signals_derivadas_valid[:,i]))
+end
+
+itp_derivadas = []
+
+# Interpolamos las derivadas
+for i in 1:size(Signals_rep)[1]
+    push!(itp_derivadas, CubicSpline(tvalid, Signals_derivadas_valid[:,i], extrapl = [2,], extrapr=[2,]))
+end
+
+extra_parameters = itp_derivadas
+extra_parameters_valid = itp_derivadas
+extra_parameters2 = recta_funcs
+
+# ╔═╡ c7c6511c-d0ea-401e-b8dd-76628a65c8ce
+md"Hay un parámetro de las NODE que hubo que bajar para que no consuma tanta memoria entrenarlas y es el método y tolerancias:
+
+* abstol (absolute tolerance in changes of the objective value)
+* reltol (relative tolerance in changes of the objective value)
+
+que estaban en $1 \times 10^{-7}$, que pasa si bajamos esto a $1 \times 10^{-9}$ esto debería dar pedir menos diferencia entre los valores que predice la red y los objetivos. Además de esto sacamos el término de penalización que ya no está contribuyendo al loss para que las predicciones tengan la libertad de subir y ajustarse a las soluciones.
+
+entrenando unas 200 épocas mas con estas configuraciones la red anterior tenemos lo siguiente:
+"
+
+# ╔═╡ 4d24e3a2-8c30-4f78-9d88-895ad8427dc6
+PlutoUI.Resource("https://imgur.com/LzEYEHQ.png")
+
+# ╔═╡ ce7a7fb3-339e-4c26-8f9e-b9d7bc314984
+md"Esto podría ser un punto de partida para entrenar un buen modelo que generalice los resultados."
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -804,6 +1071,26 @@ version = "17.4.0+0"
 # ╟─0d7a3bfa-70f3-41a7-94a7-d98da5fd3845
 # ╠═3175bee3-910f-48b9-9bca-99d716ae3260
 # ╟─6ba94324-60ae-4f2b-8341-b7e7ce6504cf
-# ╠═4ecfc829-2e1f-4c77-bdfa-32e5f5842242
+# ╟─4ecfc829-2e1f-4c77-bdfa-32e5f5842242
+# ╟─1e2b0e2a-31de-4cde-8a87-6713e6579a7c
+# ╟─9b2f1a7e-8cd6-4a46-9668-b7b6549b997a
+# ╟─d29f28e4-aa69-408b-8409-1c997571b846
+# ╟─3fb6b95d-7418-4c46-b37a-b3e6b951b446
+# ╟─59f81979-3b50-4fe1-9806-2fb91f0ae7c1
+# ╟─98365ca7-cf79-49ac-b9db-70947c235c33
+# ╟─e9bfa74b-fe80-40b8-addc-bce041940774
+# ╟─48fe9cc7-2833-440d-943d-fb7d99ed84d9
+# ╟─6cc46127-d031-433b-ba4c-843fd2be2fc0
+# ╟─28ce16aa-aee5-4fb8-91f6-9adb31d5c745
+# ╟─878097ce-a953-4c64-894b-ba691593dfbd
+# ╟─12fae0f1-5cdf-4bfd-8b41-3f4d4da8c0aa
+# ╟─f4f8921d-ffb4-44f9-9cc7-402766498473
+# ╟─0046f7de-c9fb-44df-91ae-d78fa8993c2a
+# ╟─384a261c-8560-4bbd-b0f3-09a2444685f3
+# ╟─2e57b008-99a1-415a-937e-f6832dfcd4ce
+# ╠═82876351-6189-416f-b9f5-05e219f89bc2
+# ╟─c7c6511c-d0ea-401e-b8dd-76628a65c8ce
+# ╟─4d24e3a2-8c30-4f78-9d88-895ad8427dc6
+# ╟─ce7a7fb3-339e-4c26-8f9e-b9d7bc314984
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
