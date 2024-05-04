@@ -763,6 +763,9 @@ PlutoUI.Resource("https://imgur.com/LzEYEHQ.png")
 # ╔═╡ ce7a7fb3-339e-4c26-8f9e-b9d7bc314984
 md"Esto podría ser un punto de partida para entrenar un buen modelo que generalice los resultados."
 
+# ╔═╡ 28cd6d2e-f493-4b26-9d5f-35d0b766d890
+
+
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
@@ -1092,5 +1095,6 @@ version = "17.4.0+0"
 # ╟─c7c6511c-d0ea-401e-b8dd-76628a65c8ce
 # ╟─4d24e3a2-8c30-4f78-9d88-895ad8427dc6
 # ╟─ce7a7fb3-339e-4c26-8f9e-b9d7bc314984
+# ╠═28cd6d2e-f493-4b26-9d5f-35d0b766d890
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
