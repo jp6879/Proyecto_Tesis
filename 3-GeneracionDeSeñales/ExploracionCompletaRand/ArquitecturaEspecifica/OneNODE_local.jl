@@ -77,16 +77,6 @@ function derivate_signals(t,signal)
     return derivadas
 end
 
-
-function calucla_recta(x, x1, y1, x0 = 0, y0 = 1)
-    m = (y1 - y0) / (x1 - x0)
-    b = y0 - m * x0
-    println("Pendiente: ", m)
-    println("Ordenada al origen: ", b)
-    println(x)
-    return Float32.(m .* x' .+ b)
-end
-
 ##############################################################################################
 
 t_short = Float32.(collect(range(0, 0.1, length = 1000)))
@@ -103,8 +93,8 @@ t_long = t_long[1:muestreo_largo:end]
 t = vcat(t_short, t_long)
 
 # Tomamos 1 sigmas y 5 tamaños de compartimientos para cada sigma o sea 60 señales
-sampled_sigmas =  [1.0]
-lcm_range = 1:25:125
+sampled_sigmas = [1]
+lcm_range = 1:100:600
 
 println("Sigmas: ", sampled_sigmas)
 println("Lcms: ", collect(lcms)[lcm_range])
@@ -119,32 +109,20 @@ for i in 2:size(Signals_rep)[1]
 end
 plot_signals
 
-#Grafiquemos las derivadas
-plot_signals_derivadas = scatter(t, Signals_rep_derivadas[:,1], label = "Señal σ = $(column_sigmas_rep[1]) lcm = $(column_lcm_rep[1])", xlabel = "t", ylabel = "S'(t)", title = "Derivadas de las señales representativas", lw = 2, tickfontsize=12, labelfontsize=15, legendfontsize=11, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10)
-for i in 2:size(Signals_rep)[1]
-    scatter!(plot_signals_derivadas, t, Signals_rep_derivadas[:,i], label = "Señal σ = $(column_sigmas_rep[i]) lcm = $(column_lcm_rep[i])", lw = 2)
-end
-plot_signals_derivadas
-
 # Numero de puntos para la validacion
 n_valid = 10
 # Paso para tomar los tiempos de entrenamiento y validación
 step = floor(Int, length(t) / n_valid) + 1
 
 tvalid = t[1:step:end]
-ttrain = [t for t in t if t ∉ tvalid]
 
 # En la validación y en el train tenemos que tener el primer y último tiempo
-ttrain = vcat(0, ttrain)
-tvalid = vcat(tvalid, ttrain[end])
+tvalid = vcat(tvalid, t[end])
 
-indexes_train = [i for i in 1:length(t) if t[i] in ttrain]
 indexes_valid = [i for i in 1:length(t) if t[i] in tvalid]
 
 Signals_valid = Signals_rep[:,indexes_valid]
-Signals_train = Signals_rep[:,indexes_train]
 
-Signals_derivadas_train = Signals_rep_derivadas[indexes_train,:]
 Signals_derivadas_valid = zeros(size(Signals_valid))
 
 for i in 1:size(Signals_valid)[1]
@@ -158,20 +136,20 @@ for i in 1:size(Signals_valid)[1]
     Signals_derivadas_valid[:,i] = Signals_derivadas_valid[:,i] ./ maximum(abs.(Signals_derivadas_valid[:,i]))
 end
 
-extra_parameters = Signals_rep_derivadas
+extra_parameters = Signals_derivadas_valid
 extra_parameters_valid = Signals_derivadas_valid
 
 # Todas las señales tienen la misma condición inicial U0 = 1
 U0 = ones32(size(Signals_rep)[1])
 
 # id actual de la red
-actual_id = 25
+actual_id = 5
 
 #Definimos el batch size
 batch_size = 15
 
 # Vamos a crear el dataloader para el entrenamiento de la NODE con mini-batchs
-train_loader = Flux.Data.DataLoader((Signals_rep, t), batchsize = batch_size, shuffle = true)
+train_loader = Flux.Data.DataLoader((Signals_rep, t), batchsize = batch_size)
 
 # Función de activación
 activation = swish
@@ -186,7 +164,7 @@ nn = Chain(Dense(2, 128, activation),
            Dense(16, 1))
 
 # Tomamos un learning rate de 0.001
-η = 5e-3
+η = 5e-2
 
 # Vamos a tomar 1000 épocas para entrenar todas las arquitecturas
 epochs = 1000

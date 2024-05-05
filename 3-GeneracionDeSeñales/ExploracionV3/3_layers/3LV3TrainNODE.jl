@@ -186,10 +186,10 @@ function Train_Neural_ODE(nn, U0, extra_parameters, extra_parameters2,
     p, re = Flux.destructure(nn) 
 
     # Si existe el archivo con los parámetros de la red previamente los cargamos
-    # if isfile("/home/juan.morales/ExploracionV2/3_layers/Parameters/$(actual_id)_Parameters.csv")
-    #     theta = CSV.read("/home/juan.morales/ExploracionV2/3_layers/Parameters/$(actual_id)_Parameters.csv", DataFrame)
-    #     p = Float32.(theta[:,1])
-    # end
+    if isfile("/home/juan.morales/ExploracionV3/3_layers/Parameters/$(actual_id)_Parameters.csv")
+        theta = CSV.read("/home/juan.morales/ExploracionV3/3_layers/Parameters/$(actual_id)_Parameters.csv", DataFrame)
+        p = Float32.(theta[:,1])
+    end
     
     # Optimizardor
     opt = opt(eta)
@@ -281,10 +281,10 @@ function main()
         ]
 
     # Optimizadores que vamos a utilizar
-    optimizers = [opt for opt in [AdamW]]
+    optimizers = [opt for opt in [AdamW, RMSProp]]
 
     # Numero de mini-batchs que vamos a utilizar 
-    batchs_size = [15, 30]
+    batchs_size = [15]
 
     # Vector de configuraciones que vamos a utilizar
     configuraciones = []
@@ -297,8 +297,8 @@ function main()
         end
     end
 
-    # path_read = "/home/juan.morales/datos_PCA"
-    path_read = "C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/1-GeneracionDeDatos/Datos_Final/datos_PCA"
+    path_read = "/home/juan.morales/datos_PCA"
+    # path_read = "C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/1-GeneracionDeDatos/Datos_Final/datos_PCA"
     
     # Distintos muestreos de tiempo
     t_short = Float32.(collect(range(0, 0.1, length = 1000)))
@@ -337,7 +337,7 @@ function main()
     tvalid = vcat(tvalid, t[end])
 
     # Indices de los tiempos de entrenamiento y de validación
-    indexes_train = [i for i in 1:length(t) if t[i] in ttrain]
+    indexes_valid = [i for i in 1:length(t) if t[i] in tvalid]
 
     # Puntos que generan la señal
     Signals_valid = Signals_rep[:,indexes_valid]
@@ -349,14 +349,14 @@ function main()
     eta = 5e-3
 
     # Vamos a tomar 1000 épocas para entrenar todas las arquitecturas
-    epochs = 1000
+    epochs = 2000
 
     # Todas las señales tienen la misma condición inicial U0 = 1
     U0 = ones32(size(Signals_rep)[1])
 
     # Para el entrenamiento en el cluster vamos iterando sobre las configuraciones y guardamos los resultados en archivos csv
-    architecture, opt, batch_size = configuraciones[1]
-    # architecture, opt, batch_size = configuraciones[parse(Int128,ARGS[1])]
+    # architecture, opt, batch_size = configuraciones[1]
+    architecture, opt, batch_size = configuraciones[parse(Int128,ARGS[1])]
 
     layers = architecture[1]
     activation = architecture[2]
@@ -387,8 +387,8 @@ function main()
     # println("Arquitectura: $architecture", " || Optimizador: $opt", " || Tamaño de mini-batch: $batc_size", " || Loss: $(architecture_loss[end])", " || Loss Forecast: $(loss_forecast[end])")
 
     # Número de modelo
-    actual_id = 1
-    # actual_id = parse(Int128,ARGS[1])
+    # actual_id = 1
+    actual_id = parse(Int128,ARGS[1])
 
     # Entrenamos una NODE con mini-batchs para cada arquitectura, optimizador y tamaño de mini-batch y guardamos el loss y los parametros de la red neuronal
     architecture_loss, theta, loss_forecast = Train_Neural_ODE(nn, U0, Signals_valid', Signals_derivadas_valid, Signals_derivadas_valid, epochs, train_loader, opt, eta, Signals_rep, Signals_valid, t, tvalid, lambd, actual_id)
@@ -405,7 +405,7 @@ function main()
     df_results_total = DataFrame(ID = actual_id, Arquitectura = actual_layer, Activación = actual_activation, Optimizador = actual_optimizer, Batch_Size = actual_batch_size, Loss_Final_Entrenamiento = actual_loss_final_train, Loss_Final_Predicción = actual_loss_final_forecast)
 
     # CSV.write("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/Exploracion Paralelizada/RepresentativeTrain_NODE/Resultados/$(actual_id)_$(actual_layer)_$(actual_activation)_$(actual_optimizer)_$(actual_batch_size).csv", df_results_total)
-    CSV.write("/home/juan.morales/ExploracionPocosPuntos/3_layers/Resultados/$(actual_id)_$(actual_layer)_$(actual_activation)_$(actual_optimizer)_$(actual_batch_size).csv", df_results_total)
+    CSV.write("/home/juan.morales/ExploracionV3/3_layers/Resultados/$(actual_id)_$(actual_layer)_$(actual_activation)_$(actual_optimizer)_$(actual_batch_size).csv", df_results_total)
     
     # Guardamos los loss y los parametros de la red neuronal en archivos csv
     Loss_Matrix = zeros((length(architecture_loss), 2))
@@ -421,16 +421,16 @@ function main()
     rename!(df_losses, Symbol("x2") => Symbol("Loss_Predicción"))
 
     # Chequeamos si existe previamente un archivo CSV y si existe concatenamos al actual
-    if isfile("/home/juan.morales/ExploracionPocosPuntos/3_layers/Losses/$(actual_id)_losses.csv")
-        df_losses = vcat(CSV.read("/home/juan.morales/ExploracionPocosPuntos/3_layers/Losses/$(actual_id)_losses.csv", DataFrame), df_losses)
+    if isfile("/home/juan.morales/ExploracionV3/3_layers/Losses/$(actual_id)_losses.csv")
+        df_losses = vcat(CSV.read("/home/juan.morales/ExploracionV3/3_layers/Losses/$(actual_id)_losses.csv", DataFrame), df_losses)
     end
 
     # CSV.write("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/Exploracion Paralelizada/RepresentativeTrain_NODE/Losses/$(actual_id)_losses.csv", df_losses)
-    CSV.write("/home/juan.morales/ExploracionPocosPuntos/3_layers/Losses/$(actual_id)_losses.csv", df_losses)
+    CSV.write("/home/juan.morales/ExploracionV3/3_layers/Losses/$(actual_id)_losses.csv", df_losses)
     
     df_theta = DataFrame(reshape(theta, length(theta), 1), :auto)
     # CSV.write("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/Exploracion Paralelizada/RepresentativeTrain_NODE/Parameters/$(actual_id)_Parameters.csv", df_losses)
-    CSV.write("/home/juan.morales/ExploracionPocosPuntos/3_layers/Parameters/$(actual_id)_Parameters.csv", df_theta)
+    CSV.write("/home/juan.morales/ExploracionV3/3_layers/Parameters/$(actual_id)_Parameters.csv", df_theta)
 end
 
 main()

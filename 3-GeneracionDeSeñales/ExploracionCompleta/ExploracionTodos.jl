@@ -14,9 +14,9 @@ md"# NOdes para realizar una predicción continua de señales de Hahn
 
 Comencemos por lo básico, primero que todo vamos a crear un modelo para predecír una única señal y ver como se comporta. 
 
-Comenzamos intentando utilizar para entrenar una señal con solo 60 puntos, de los cuales vamos a suponer que 10 son puntos medidos para predecir la señal
+Comenzamos intentando utilizar para entrenar una señal con solo 60 puntos, de los cuales vamos a suponer que 10 son puntos medidos para predecir la señal. En conclusión solo se usan 50 puntos para entrenar y 10 puntos para predecirla.
 
-Visualizemos primero los dos conjuntos que vamos a utilizar, como también las derivadas que se pasan como extra al modelo. En partícular vamos a utilizar la señal con $l_{cm} = 0.5$ $\mu$m y $\sigma = 1$.
+En partícular vamos a utilizar la señal con $l_{cm} = 0.5$ $\mu$m y $\sigma = 1$.
 "
 
 # ╔═╡ ab94bb01-d059-4d31-9dd0-eef92adb72bd
@@ -26,7 +26,7 @@ PlutoUI.Resource("https://imgur.com/XSHXjdP.png")
 PlutoUI.Resource("https://imgur.com/J8FPbf0.png")
 
 # ╔═╡ e5491fa7-0243-4101-9939-d13511e211bd
-md"Veamos ahora las derivadas, porque esto influye bastante en la señal predicha por la red neuronal"
+md"Lo que le pasamos a la red como parámetros extra es la derivada, es decir los siguientes puntos que se muestran en la imágen."
 
 # ╔═╡ 5536bcd2-aa9c-4cd8-8123-94994edfea59
 PlutoUI.Resource("https://imgur.com/IVJ2pqt.png")
@@ -273,19 +273,19 @@ md"Si vemos la función de loss del entrenamiento nos damos cuenta de que ya lle
 PlutoUI.Resource("https://imgur.com/wvXdB9H.png")
 
 # ╔═╡ 53330f4b-efbd-4a03-89bd-84eeeb873fdf
-md"Si vemos la predicción con los puntos de entrenamiento, es decir pasandole a la red los púntos de entreanmiento con los de las derivadas de estos obtenemos una señal predicha razonable."
+md"Si vemos la predicción pasandole a la señal la derivada con los puntos de entrenamiento vemos que aprende bien la dinámica."
 
 # ╔═╡ cb21a843-dc19-4555-9647-7bd0acf7cf59
 PlutoUI.Resource("https://imgur.com/iCRUhU8.png")
 
 # ╔═╡ 8d5251c0-ee65-4b85-8b88-e1c6f720a10a
-md"Veamos ahora como se ve la señal predicha con los diez puntos de validación, y con la derivada calculada con estos puntos. Esto es todo lo que necesita la red para encontrar la dinámica. Además le pasamos los tiempos en los que queremos que nos dé los puntos predichos, vamos a pedirle los 60 tiempos originales."
+md"Veamos ahora como se ve la señal predicha con la derivada calculada con los 10 puntos de validación. Esto es todo lo que necesita la red para encontrar la dinámica. Además le pasamos los tiempos en los que queremos que nos dé los puntos predichos, vamos a pedirle los 60 tiempos originales."
 
 # ╔═╡ e346b709-40b8-449a-8038-c07d87f3d396
 PlutoUI.Resource("https://imgur.com/7phyotX.png")
 
 # ╔═╡ d4e5a41c-a3b3-44d8-99d5-15fd39fb7200
-md"Vemos que la predicción no es buena, tengamos en cuenta que solo neceistamos 10 puntos para obtener toda esta curva que serían los datos 'medidos'. Veamos que pasa si le damos mas puntos y la derivada de estos."
+md"Vemos que la predicción no es buena, tengamos en cuenta que solo necesitamos 10 puntos para obtener toda esta curva que serían los datos 'medidos'. Veamos que pasa si le damos mas puntos y la derivada de estos."
 
 # ╔═╡ 58ef90bf-891e-410b-b2d0-5426c322eb27
 PlutoUI.Resource("https://imgur.com/Dd9Lp1D.png")
@@ -294,7 +294,7 @@ PlutoUI.Resource("https://imgur.com/Dd9Lp1D.png")
 PlutoUI.Resource("https://imgur.com/Bjpxd17.png")
 
 # ╔═╡ d4c20590-f0ff-4fbb-bf7d-7634090117cb
-md"Ahora con 20 puntos 'medidos' la derivada es esta la cual todavía le falta información del pico pero se parece un poco mas a la derviada con la que se entrenó el modelo."
+md"Ahora con 20 puntos 'medidos' la derivada con estos se puntos se parece mas a la derivada con la cual se entrenó la red."
 
 # ╔═╡ aa32ff80-d549-4b0b-b4b5-3729f11f81a6
 PlutoUI.Resource("https://imgur.com/wacHpXL.png")
@@ -631,7 +631,7 @@ md"Las predicciones siguien siendo malas para estas exploraciones"
 # ╔═╡ 878097ce-a953-4c64-894b-ba691593dfbd
 md"## ¿Con parámetros continutos?
 
-Los parámetros extra que estuvimos utilizando son solo puntos a distintos tiempos, ya sea de las señales o de la recta. Cuando la red hace una predicción lo hace en los tiempos que le pedimos que pueden no estar definidos para los parámetros extra. Algo que se puede hacer es tomar es una interpolación con los valores de las derivadas de las señales, así los parámetros extra serán continuos y no se tendrá este problema cunado se resuelve la ODE.
+Los parámetros extra que estuvimos utilizando son solo puntos a distintos tiempos, ya sea de las señales o de la recta. Cuando la red hace una predicción lo hace en los tiempos que le pedimos que pueden no estar definidos para los parámetros extra, por lo que se tomaba el punto definido mas cercano. Algo que se puede hacer es tomar es una interpolación con los valores de las derivadas de las señales, así los parámetros extra serán continuos y no se tendrá este problema cunado se resuelve la ODE.
 
 Comenzamos otra vez con pocas señales tomando el entrenamiento para las mismas señales con $\sigma = 1$, para distintos valores de $l_{cm} = 0.5,~1.0,~1.5,~2.0,~2.5$ $\mu$m.
 
@@ -764,7 +764,31 @@ PlutoUI.Resource("https://imgur.com/LzEYEHQ.png")
 md"Esto podría ser un punto de partida para entrenar un buen modelo que generalice los resultados."
 
 # ╔═╡ 28cd6d2e-f493-4b26-9d5f-35d0b766d890
+md"## Random shuffle
 
+Otra opción fue además de dar el entrenamiento en mini batchs se dan estos de forma aleatoria. Los resultados con esta exploración para las señales con $\sigma = 1$ constante y $l_{cm} = 0.5,~1.0,~1.5,~2.0,~2.5$ $\mu$m durante 1000 épocas son los siguientes:
+
+$$\begin{aligned}
+& \begin{array}{ccccccc}
+    \hline
+    \text{ID} & \text{Arq} & \text{Activ} & \text{Optim} & \text{BatchS} & \text{LossTrain} & \text{LossPredict} \\
+    \hline
+    1 & [2, 32, 64, 16, 1] & \text{relu} & \text{AdamW} & 15 & 0.04327 & 0.03984 \\
+    2 & [2, 32, 64, 16, 1] & \text{relu} & \text{AdamW} & 30 & 0.04266 & 0.03944 \\
+    3 & [2, 128, 64, 16, 1] & \text{relu} & \text{AdamW} & 15 & 0.04732 & 0.04481 \\
+    4 & [2, 32, 64, 16, 1] & \text{tanh\_fast} & \text{AdamW} & 30 & 0.04381 & 0.03957 \\
+    5 & [2, 32, 64, 16, 1] & \text{swish} & \text{AdamW} & 15 & 0.04326 & 0.03957 \\
+    6 & [2, 32, 64, 16, 1] & \text{swish} & \text{AdamW} & 30 & 0.04398 & 0.04062 \\
+    7 & [2, 128, 64, 16, 1] & \text{relu} & \text{AdamW} & 15 & 0.04295 & 0.03937 \\
+    8 & [2, 128, 64, 16, 1] & \text{relu} & \text{AdamW} & 30 & 0.04379 & 0.04016 \\
+    9 & [2, 128, 64, 16, 1] & \text{swish} & \text{AdamW} & 15 & 0.04338 & 0.03995 \\
+    10 & [2, 128, 64, 16, 1] & \text{swish} & \text{AdamW} & 30 & 0.04398 & 0.03957 \\
+    \hline
+\end{array}
+\end{aligned}$$
+
+el loss final es también parecido a los anteriores, no cambia mucho.
+"
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -1050,7 +1074,7 @@ version = "17.4.0+0"
 # ╠═bae54963-a828-45e7-b4f7-31e89d000442
 # ╟─e5430075-31d9-45a4-afd1-21874efd13b8
 # ╟─207da352-0a66-4aae-8f85-342d1eebb5e8
-# ╟─53330f4b-efbd-4a03-89bd-84eeeb873fdf
+# ╠═53330f4b-efbd-4a03-89bd-84eeeb873fdf
 # ╟─cb21a843-dc19-4555-9647-7bd0acf7cf59
 # ╟─8d5251c0-ee65-4b85-8b88-e1c6f720a10a
 # ╟─e346b709-40b8-449a-8038-c07d87f3d396
@@ -1095,6 +1119,6 @@ version = "17.4.0+0"
 # ╟─c7c6511c-d0ea-401e-b8dd-76628a65c8ce
 # ╟─4d24e3a2-8c30-4f78-9d88-895ad8427dc6
 # ╟─ce7a7fb3-339e-4c26-8f9e-b9d7bc314984
-# ╠═28cd6d2e-f493-4b26-9d5f-35d0b766d890
+# ╟─28cd6d2e-f493-4b26-9d5f-35d0b766d890
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
