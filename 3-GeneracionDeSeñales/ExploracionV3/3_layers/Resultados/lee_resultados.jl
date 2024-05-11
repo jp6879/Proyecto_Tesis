@@ -1,7 +1,7 @@
 using CSV
 using DataFrames
 
-folder_path = "C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/ExploracionV2/3_layers/Resultados"  # Replace with the actual path to your folder
+folder_path = "C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/ExploracionV3/3_layers/Resultados"  # Replace with the actual path to your folder
 csv_files = readdir(folder_path, join=true) |> filter(file -> endswith(file, ".csv"))
 
 for name in csv_files

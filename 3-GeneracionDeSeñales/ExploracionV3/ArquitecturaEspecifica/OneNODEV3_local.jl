@@ -175,20 +175,22 @@ extra_parameters_valid2 = Signals_derivadas_valid
 U0 = ones32(size(Signals_rep)[1])
 
 # id actual de la red
-actual_id = 1
+actual_id = 7
 
 #Definimos el batch size
-batch_size = 20
+batch_size = 15
 
 # Vamos a crear el dataloader para el entrenamiento de la NODE con mini-batchs
 train_loader = Flux.Data.DataLoader((Signals_rep, t), batchsize = batch_size)
 
 # Función de activación
-activation = tanh_fast
+activation = relu
 
-nn = Chain(Dense(3, 16, activation),
-            Dense(16, 32, activation),
-            Dense(32, 16, activation),
+# 7,"[3, 32, 64, 16, 1]",relu,AdamW,15,0.015440804844603407,0.37564877375723504
+
+nn = Chain(Dense(3, 32, activation),
+            Dense(32, 64, activation),
+            Dense(64, 16, activation),
             Dense(16, 1)
             )
 
@@ -204,8 +206,8 @@ f(x,p) = round(Int, x * (length(p) - 1)) + 1
 p, re = Flux.destructure(nn) # Para entrenar la red tenemos que extraer los parametros de la red neuronal en su condicion inicial
 p
 # Leemos los parámetros de la red ya entrenada si es que existen
-if isfile("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/ExploracionV3/ArquitecturaEspecifica/Parameters/$(actual_id)_ParametersV2.csv")
-    theta = CSV.read("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/ExploracionV3/ArquitecturaEspecifica/Parameters/$(actual_id)_ParametersV2.csv", DataFrame)
+if isfile("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/ExploracionV3/ArquitecturaEspecifica/Parameters/$(actual_id)_Parameters.csv")
+    theta = CSV.read("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/ExploracionV3/ArquitecturaEspecifica/Parameters/$(actual_id)_Parameters.csv", DataFrame)
     p = Float32.(theta[:,1])
 else
     println("No se encontraron los parámetros de la red neuronal")
@@ -234,7 +236,7 @@ function predict_NeuralODE(u0, parametros, parametros2, time_batch)
 
     prob = ODEProblem(dSdt, u0, tspan)
 
-    return Array(solve(prob, Tsit5(), dtmin=1e-9 , u0 = u0, p = p, saveat = time_batch, reltol = 1e-5, abstol = 1e-5)) # Regresa la solución de la ODE
+    return Array(solve(prob, AutoVern9(), dtmin=1e-9 , u0 = u0, p = p, saveat = time_batch, reltol = 1e-9, abstol = 1e-9)) # Regresa la solución de la ODE
 end
 
 # Función que predice las señales para un conjunto de condiciones iniciales y parámetros extra
@@ -338,7 +340,7 @@ savefig("../3-GeneracionDeSeñales/ExploracionV2/ArquitecturaEspecifica/Imagenes
 # # ##############################################################################################
 
 # # # Vamos a hacer un plot de las señales de entrenamiento y sus predicciones
-plot_predictions = scatter(t, Signals_rep', label = "Señales")
+plot_predictions = scatter(t, Signals_rep', label = false)
 plot!(t, Predict_Singals(U0[1], extra_parameters[:,1], extra_parameters2[:,1], t), label = "Prediccion Entrenamiento", xlabel = "t", ylabel = "S(t)", title = "Predicción de señales", lw = 2, color = :red, markershape = :circle)
 plot!(t, Predict_Singals(U0[2:end], extra_parameters[:,2:end], extra_parameters2[:,2:end], t), label = false, xlabel = "t", ylabel = "S(t)", title = "Predicción de señales", lw = 2, color = :red, markershape = :circle)
 plot!(t, Predict_Singals(U0[1], extra_parameters_valid[:,1], extra_parameters2[:,1], t), label = "Prediccion Validación", xlabel = "t", ylabel = "S(t)", title = "Predicción de señales", lw = 2, color = :orange, markershape = :utriangle, ls = :dash)

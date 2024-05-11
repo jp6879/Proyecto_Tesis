@@ -204,8 +204,8 @@ f(x,p) = round(Int, x * (length(p) - 1)) + 1
 p, re = Flux.destructure(nn) # Para entrenar la red tenemos que extraer los parametros de la red neuronal en su condicion inicial
 p
 # Leemos los parámetros de la red ya entrenada si es que existen
-if isfile("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/ExploracionV3/ArquitecturaEspecifica/Parameters/$(actual_id)_ParametersV2.csv")
-    theta = CSV.read("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/ExploracionV3/ArquitecturaEspecifica/Parameters/$(actual_id)_ParametersV2.csv", DataFrame)
+if isfile("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/ExploracionV3/ArquitecturaEspecifica/Parameters/$(actual_id)_Parameters.csv")
+    theta = CSV.read("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/ExploracionV3/ArquitecturaEspecifica/Parameters/$(actual_id)_Parameters.csv", DataFrame)
     p = Float32.(theta[:,1])
 else
     println("No se encontraron los parámetros de la red neuronal")
@@ -288,11 +288,6 @@ callback = function ()
         println("Epoch = $epoch || Loss: $actual_loss || Loss Forecast: $forecast_loss")
         push!(loss, actual_loss)
         push!(loss_valid_array, forecast_loss)
-        # if epoch % 20 == 0
-        #     plot_predictions = scatter(t, Signals_rep', label = "Señal σ = $(column_sigmas_rep[1]) lcm = $(column_lcm_rep[1])", xlabel = "t", ylabel = "S(t)", title = "Predicción de señales", lw = 2, tickfontsize=12, labelfontsize=15, legendfontsize=11, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10)
-        #     plot!(t, Predict_Singals(U0, extra_parameters_valid, extra_parameters_valid2, t), label = "Entrenamiento", xlabel = "t", ylabel = "S(t)", title = "Predicción de señales", lw = 2, color = :red, markershape = :circle)
-        #     display(plot_predictions)
-        # end
     end
     return false
 end
@@ -305,7 +300,7 @@ Flux.train!(loss_node, Flux.params(p), ncycle(train_loader, epochs), opt, cb = c
 # Guardamos los parámetros
 df_parameters = DataFrame(reshape(p, length(p), 1), :auto)
 
-# CSV.write("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/ExploracionCompleta/ExploracionPocosPuntos/ArquitecturaEspecifica/Parameters/$(actual_id)_ParametersV2.csv", df_parameters)
+# CSV.write("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/ExploracionCompleta/ExploracionPocosPuntos/ArquitecturaEspecifica/Parameters/$(actual_id)_Parameters.csv", df_parameters)
 
 # Guardamos las funciónes de loss
 Loss_Matrix = zeros((length(loss), 2))
@@ -319,30 +314,10 @@ df_losses = DataFrame(Loss_Matrix, :auto)
 rename!(df_losses, Symbol("x1") => Symbol("Loss_Entrenamiento"))
 rename!(df_losses, Symbol("x2") => Symbol("Loss_Predicción"))
 
-if isfile("../3-GeneracionDeSeñales/ExploracionV2/ArquitecturaEspecifica/Losses/$(actual_id)_lossesV2.csv")
-   df_losses = CSV.read("../3-GeneracionDeSeñales/ExploracionV2/ArquitecturaEspecifica/Losses/$(actual_id)_lossesV2.csv", DataFrame)
+if isfile("../3-GeneracionDeSeñales/ExploracionV3/ArquitecturaEspecifica/Losses/$(actual_id)_losses.csv")
+   df_losses = CSV.read("../3-GeneracionDeSeñales/ExploracionV3/ArquitecturaEspecifica/Losses/$(actual_id)_losses.csv", DataFrame)
    loss = df_losses[:,1]
    loss_valid_array = df_losses[:,2]
 else
     println("No se encontraron los loss de la red neuronal")
 end
-
-# CSV.write("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/ExploracionCompleta/ExploracionPocosPuntos/ArquitecturaEspecifica/Losses/$(actual_id)_lossesV2.csv", df_losses)
-
-start_index = 100
-
-plots_loss = plot(loss[start_index:end], label = "Loss de entrenamiento", xlabel = "Época", ylabel = "Loss", title = "Loss de entrenamiento", lw = 2, tickfontsize=12, labelfontsize=15, legendfontsize=11, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10)
-plot!(loss_valid_array[start_index:end], label = "Loss de predicción", xlabel = "Época", ylabel = "Loss", title = "Loss de entrenamiento", lw = 2)
-savefig("../3-GeneracionDeSeñales/ExploracionV2/ArquitecturaEspecifica/Imagenes/3LSignals_LossV2.png")
-
-# # ##############################################################################################
-
-# # # Vamos a hacer un plot de las señales de entrenamiento y sus predicciones
-plot_predictions = scatter(t, Signals_rep', label = "Señales")
-plot!(t, Predict_Singals(U0[1], extra_parameters[:,1], extra_parameters2[:,1], t), label = "Prediccion Entrenamiento", xlabel = "t", ylabel = "S(t)", title = "Predicción de señales", lw = 2, color = :red, markershape = :circle)
-plot!(t, Predict_Singals(U0[2:end], extra_parameters[:,2:end], extra_parameters2[:,2:end], t), label = false, xlabel = "t", ylabel = "S(t)", title = "Predicción de señales", lw = 2, color = :red, markershape = :circle)
-plot!(t, Predict_Singals(U0[1], extra_parameters_valid[:,1], extra_parameters2[:,1], t), label = "Prediccion Validación", xlabel = "t", ylabel = "S(t)", title = "Predicción de señales", lw = 2, color = :orange, markershape = :utriangle, ls = :dash)
-plot!(t, Predict_Singals(U0[2:end], extra_parameters_valid[:,2:end], extra_parameters2[:,2:end], t), label = false, xlabel = "t", ylabel = "S(t)", title = "Predicción de señales", lw = 2, color = :orange, markershape = :utriangle, ls = :dash)
-scatter!(tvalid, Signals_valid', label = false, lw = 2, color = :blue, markershape = :star6, markersize = 8)
-
-savefig("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/ExploracionV2/ArquitecturaEspecifica/Imagenes/3LSignals_predicciónV2.png")
