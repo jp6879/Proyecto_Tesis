@@ -98,7 +98,7 @@ t_short = Float32.(collect(range(0, 0.1, length = 1000)))
 t_long = Float32.(collect(range(0.1, 1, length = 100)))
     
 # Vamos a tomar un subconjunto de t para hacer el entrenamiento de la NODE para agilizar los tiempos de entrenamiento
-muestreo_corto =  25 # Cada cuantos tiempos tomamos un timepo para entrenar la NODE
+muestreo_corto =  50 # Cada cuantos tiempos tomamos un timepo para entrenar la NODE
 muestreo_largo = 5
 
 # Esto da 100 tiempos 50 puntos desde 0 a 0.1 y 25 puntos desde 0.1 a 1
@@ -109,13 +109,17 @@ t = vcat(t_short, t_long)
 
 # Tomamos 1 sigmas y 5 tamaños de compartimientos para cada sigma o sea 60 señales
 sampled_sigmas =  [1.0]
-lcm_range = 1:50:250
+lcm_range = 1:50:600
 
 println("Sigmas: ", sampled_sigmas)
 println("Lcms: ", collect(lcms)[lcm_range])
 
 # Obtenemos las señales representativas para un conjunto de sigmas y lcms
 Signals_rep, Signals_rep_derivadas, column_lcm_rep, column_sigmas_rep = Get_Signals_Data_Training(path_read, lcms, sigmas, sampled_sigmas, lcm_range, muestreo_corto, muestreo_largo, t)
+
+t = t_short
+Signals_rep = Signals_rep[:,1:length(t_short)]
+Signals_rep_derivadas = Signals_rep_derivadas[1:length(t_short),:]
 
 # Grafiquemos las señales
 plot_signals = scatter(t, Signals_rep[1,:], label = "Señal σ = $(column_sigmas_rep[1]) lcm = $(column_lcm_rep[1])", xlabel = "t", ylabel = "S(t)", title = "Varias Señales", lw = 2, tickfontsize=12, labelfontsize=15, legendfontsize=11, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10)
@@ -134,7 +138,7 @@ end
 plot_signals_derivadas
 
 # Numero de puntos para la validacion
-n_valid = 10
+n_valid = 5
 
 # Paso para tomar los tiempos de entrenamiento y validación
 step = floor(Int, length(t) / n_valid) + 1
@@ -175,10 +179,11 @@ for i in 1:size(Signals_valid)[1]
     Signals_derivadas_valid[:,i] = Signals_derivadas_valid[:,i] ./ maximum(abs.(Signals_derivadas_valid[:,i]))
 end
 
-plot_signals_derivadas = scatter(tvalid, Signals_derivadas_valid[:,1], label = "Señal σ = $(column_sigmas_rep[1]) lcm = $(column_lcm_rep[1])", xlabel = "t", ylabel = "S'(t)", title = "Derivadas de las señales representativas", lw = 2, tickfontsize=12, labelfontsize=15, legendfontsize=11, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10)
+plot_signals_derivadas = scatter(tvalid, Signals_derivadas_valid[:,1], label = "Señal σ = $(column_sigmas_rep[1]) lcm = $(column_lcm_rep[1])", xlabel = "t", ylabel = "S'(t)", title = "Derivadas de las señales representativas", lw = 2, tickfontsize=12, labelfontsize=15, legendfontsize=1, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10)
 for i in 2:size(Signals_rep)[1]
     scatter!(plot_signals_derivadas, tvalid, Signals_derivadas_valid[:,i], label = "Señal σ = $(column_sigmas_rep[i]) lcm = $(column_lcm_rep[i])", lw = 2)
 end
+
 plot_signals_derivadas
 
 itp_derivadas = []
@@ -199,7 +204,7 @@ U0 = ones32(size(Signals_rep)[1])
 actual_id = 27
 
 #Definimos el batch size
-batch_size = 15
+batch_size = 5
 
 # 27,"[3, 32, 64, 16, 8, 1]",tanh_fast,AdamW,15,0.015395822743798204,0.013012183844752567
 
@@ -239,7 +244,7 @@ p
 opt = AdamW(η)
 
 # Tiempo sobre el cual resolver la ODE
-tspan = (0f0, 1f0)
+tspan = (0f0, 0.1f0)
 
 # Función que resuelve la ODE con los parametros extra y las condiciones iniciales que instanciemos y nos regresa la solución en un arreglo
 function predict_NeuralODE(u0, parametros, parametros2, time_batch)
@@ -253,7 +258,7 @@ function predict_NeuralODE(u0, parametros, parametros2, time_batch)
 
     prob = ODEProblem(dSdt, u0, tspan)
 
-    return Array(solve(prob, Tsit5(), dtmin=1e-9 , u0 = u0, p = p, saveat = time_batch, reltol = 1e-9, abstol = 1e-9)) # Regresa la solución de la ODE
+    return Array(solve(prob, Vern6(), dtmin=1e-9 , u0 = u0, p = p, saveat = time_batch))# reltol = 1e-5, abstol = 1e-5)) # Regresa la solución de la ODE
 end
 
 # Función que predice las señales para un conjunto de condiciones iniciales y parámetros extra
@@ -308,7 +313,7 @@ callback = function ()
         push!(loss, actual_loss)
         push!(loss_valid_array, forecast_loss)
         if epoch % 20 == 0
-            plot_predictions = scatter(t, Signals_rep', label = "Señal σ = $(column_sigmas_rep[1]) lcm = $(column_lcm_rep[1])", xlabel = "t", ylabel = "S(t)", title = "Predicción de señales", lw = 2, tickfontsize=12, labelfontsize=15, legendfontsize=11, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10)
+            plot_predictions = scatter(t, Signals_rep', label = "Señal σ = $(column_sigmas_rep[1]) lcm = $(column_lcm_rep[1])", xlabel = "t", ylabel = "S(t)", title = "Predicción de señales", lw = 2, tickfontsize=12, labelfontsize=15, legendfontsize=1, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10)
             plot!(t, Predict_Singals(U0, extra_parameters_valid, extra_parameters2, t), label = "Entrenamiento", xlabel = "t", ylabel = "S(t)", title = "Predicción de señales", lw = 2, color = :red, markershape = :circle)
             display(plot_predictions)
         end

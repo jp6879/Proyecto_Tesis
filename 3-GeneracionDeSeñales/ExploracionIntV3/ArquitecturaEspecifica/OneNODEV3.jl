@@ -76,11 +76,36 @@ function derivate_signals(t,signal)
     return derivadas
 end
 
+function get_signals_deriv_valid(tvalid, Signals_valid)
+    Signals_derivadas_valid = zeros(size(Signals_valid))
 
-function calucla_recta(x, x1, y1, x0 = 0, y0 = 1)
-    m = (y1 - y0) / (x1 - x0)
-    b = y0 - m * x0
-    return Float32.(m .* x' .+ b)
+    # Obtenemos las derivadas de las señales de validación
+    for i in 1:size(Signals_valid)[1]
+        Signals_derivadas_valid[i,:] = derivate_signals(tvalid,Signals_valid[i,:])
+    end
+
+    # La transponemos y la convertimos a Float32
+    Signals_derivadas_valid = Float32.(Matrix(Signals_derivadas_valid'))
+
+    # Normalizamos las derivadas
+    for i in 1:size(Signals_valid)[1]
+        Signals_derivadas_valid[:,i] = Signals_derivadas_valid[:,i] ./ maximum(abs.(Signals_derivadas_valid[:,i]))
+    end
+
+    return Signals_derivadas_valid
+end
+
+
+# Función que devuelve un interpolador de la derivada calculada utilizando los puntos
+# de la señal que se tienen
+function get_interpolated_deriv(tvalid, Signals_derivadas_valid)
+    itp_derivadas = []
+    # Interpolamos las derivadas
+    for i in 1:size(Signals_derivadas_valid)[2]
+        # push!(itp_derivadas, CubicSpline(tvalid, Signals_derivadas_valid[:,i], extrapl = [2,], extrapr=[2,]))
+        push!(itp_derivadas, Interpolations.linear_interpolation(tvalid, Signals_derivadas_valid[:,i], extrapolation_bc=Line()))
+    end
+    return itp_derivadas
 end
 
 ##############################################################################################
@@ -100,34 +125,23 @@ t = vcat(t_short, t_long)
 
 # Tomamos 1 sigmas y 5 tamaños de compartimientos para cada sigma o sea 60 señales
 sampled_sigmas =  [1.0]
-# lcm_range = 1:50:250
-lcm_range = 1:100:600
+lcm_range = 1:50:600
+lcm_test = 1:75:600
 
 println("Sigmas: ", sampled_sigmas)
 println("Lcms: ", collect(lcms)[lcm_range])
+lcm_test = [l for l in collect(lcm_test) if l ∉ collect(lcm_range)]
+println("Lcms test: ", collect(lcms)[lcm_test])
+
 
 # Obtenemos las señales representativas para un conjunto de sigmas y lcms
 Signals_rep, Signals_rep_derivadas, column_lcm_rep, column_sigmas_rep = Get_Signals_Data_Training(path_read, lcms, sigmas, sampled_sigmas, lcm_range, muestreo_corto, muestreo_largo, t)
+Signals_test, Signals_test_derivadas, column_lcm_test, column_sigmas_test = Get_Signals_Data_Training(path_read, lcms, sigmas, sampled_sigmas, lcm_test, muestreo_corto, muestreo_largo, t)
 
-Signals_rep = Signals_rep[:,1:length(t_short)]
-Signals_rep_derivadas = Signals_rep_derivadas[1:length(t_short),:]
-
-# Grafiquemos las señales
-plot_signals = scatter(t, Signals_rep[1,:], label = "Señales", xlabel = "t", ylabel = "S(t)", title = "Varias Señales", lw = 2, tickfontsize=12, labelfontsize=15, legendfontsize=11, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10)
-for i in 2:size(Signals_rep)[1]
-    scatter!(plot_signals, t, Signals_rep[i,:], label = false, lw = 2)
-end
-plot_signals
-
-#Grafiquemos las derivadas
-plot_signals_derivadas = scatter(t, Signals_rep_derivadas[:,1], label = "Derivadas", xlabel = "t", ylabel = "S'(t)", title = "Derivadas de las señales representativas", lw = 2, tickfontsize=12, labelfontsize=15, legendfontsize=11, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10)
-for i in 2:size(Signals_rep)[1]
-    scatter!(plot_signals_derivadas, t, Signals_rep_derivadas[:,i], label = false, lw = 2)
-end
-plot_signals_derivadas
+##############################################################################################
 
 # Numero de puntos para la validacion
-n_valid = 5
+n_valid = 10
 
 # Paso para tomar los tiempos de entrenamiento y validación
 step = floor(Int, length(t) / n_valid) + 1
@@ -140,60 +154,49 @@ tvalid = vcat(tvalid, t[end])
 indexes_valid = [i for i in 1:length(t) if t[i] in tvalid]
 
 Signals_valid = Signals_rep[:,indexes_valid]
+Signals_test_puntos = Signals_test[:,indexes_valid]
 
 # Derivadas de las señales
 Signals_derivadas_valid = zeros(size(Signals_valid))
 
-for i in 1:size(Signals_valid)[1]
-    Signals_derivadas_valid[i,:] = derivate_signals(tvalid,Signals_valid[i,:])
-end
+# Obtenemos las derivadas de las señales de validación
+Signals_derivadas_valid = get_signals_deriv_valid(tvalid, Signals_valid)
+Signals_derivadas_test = get_signals_deriv_valid(tvalid, Signals_test_puntos)
 
-Signals_derivadas_valid = Float32.(Matrix(Signals_derivadas_valid'))
+# Obtenemos las interpolaciones de las señales y de las derivadas
+itp_signals = get_interpolated_deriv(tvalid, Signals_valid')
+itp_derivadas = get_interpolated_deriv(tvalid, Signals_derivadas_valid)
 
-# Normalizamos las derivadas
-for i in 1:size(Signals_valid)[1]
-    Signals_derivadas_valid[:,i] = Signals_derivadas_valid[:,i] ./ maximum(abs.(Signals_derivadas_valid[:,i]))
-end
+itp_signals_test = get_interpolated_deriv(tvalid, Signals_test_puntos')
+itp_derivadas_test = get_interpolated_deriv(tvalid, Signals_derivadas_test)
 
-plot_puntos_usados = scatter(tvalid, Signals_valid[1,:], label = "Puntos usados", xlabel = "t", ylabel = "S(t)", title = "Varias Señales", lw = 2, tickfontsize=12, labelfontsize=15, legendfontsize=11, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10)
-for i in 2:size(Signals_valid)[1]
-    scatter!(plot_puntos_usados, tvalid, Signals_valid[i,:], label = false, lw = 2)
-end
+extra_parameters = itp_signals
+extra_parameters2 = itp_derivadas
 
-display(plot_puntos_usados)
+extra_parameters_test = itp_signals_test
+extra_parameters2_test = itp_derivadas_test
 
-plot_derivadas_train = scatter(tvalid, Signals_derivadas_valid[:,1], label = "Derivadas usadas", xlabel = "t", ylabel = "S'(t)", title = "Derivadas de las señales de entrenamiento", lw = 2, tickfontsize=12, labelfontsize=15, legendfontsize=11, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10)
-for i in 2:size(Signals_valid)[1]
-    scatter!(plot_derivadas_train, tvalid, Signals_derivadas_valid[:,i], label = false, lw = 2)
-end
-
-display(plot_derivadas_train)
-
-extra_parameters = Signals_valid'
-extra_parameters2 = Signals_derivadas_valid
-extra_parameters_valid = Signals_valid'
-extra_parameters_valid2 = Signals_derivadas_valid
+##############################################################################################
 
 # Todas las señales tienen la misma condición inicial U0 = 1
 U0 = ones32(size(Signals_rep)[1])
+U0_test = ones32(size(Signals_test)[1])
 
 # id actual de la red
-actual_id = 17
+actual_id = 1
 
 #Definimos el batch size
-batch_size = 5
+batch_size = 10
 
 # Vamos a crear el dataloader para el entrenamiento de la NODE con mini-batchs
 train_loader = Flux.Data.DataLoader((Signals_rep, t), batchsize = batch_size)
 
 # Función de activación
-activation = relu
+activation = tanh_fast
 
-# 7,"[3, 32, 64, 16, 1]",relu,AdamW,15,0.015440804844603407,0.37564877375723504
-
-nn = Chain(Dense(3, 32, activation),
-            Dense(32, 64, activation),
-            Dense(64, 16, activation),
+nn = Chain(Dense(3, 16, activation),
+            Dense(16, 32, activation),
+            Dense(32, 16, activation),
             Dense(16, 1)
             )
 
@@ -201,7 +204,7 @@ nn = Chain(Dense(3, 32, activation),
 η = 5e-3
 
 # Vamos a tomar 1000 épocas para entrenar todas las arquitecturas
-epochs = 2000
+epochs = 500
 
 # Parametrizar indices para poder acceder a los parametros extras de la red neuronal
 f(x,p) = round(Int, x * (length(p) - 1)) + 1
@@ -209,14 +212,13 @@ f(x,p) = round(Int, x * (length(p) - 1)) + 1
 p, re = Flux.destructure(nn) # Para entrenar la red tenemos que extraer los parametros de la red neuronal en su condicion inicial
 p
 # Leemos los parámetros de la red ya entrenada si es que existen
-if isfile("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/ExploracionV3/ArquitecturaEspecifica/Parameters/$(actual_id)_Parameters.csv")
-    theta = CSV.read("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/ExploracionV3/ArquitecturaEspecifica/Parameters/$(actual_id)_Parameters.csv", DataFrame)
+if isfile("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/ExploracionIntV3/ArquitecturaEspecifica/Parameters/$(actual_id)_ParametersV2.csv")
+    theta = CSV.read("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/ExploracionIntV3/ArquitecturaEspecifica/Parameters/$(actual_id)_ParametersV2.csv", DataFrame)
     p = Float32.(theta[:,1])
 else
     println("No se encontraron los parámetros de la red neuronal")
 end
 
-p
 
 ##############################################################################################
 
@@ -230,9 +232,8 @@ tspan = (0f0, 1f0)
 function predict_NeuralODE(u0, parametros, parametros2, time_batch)
     # dSdt = NN(S, parametros_extra) 
     function dSdt(u, p, t; parametros_extra = parametros, parametros_extra2 = parametros2)
-        indx = f(t, parametros)
-        parametros_actuales = parametros[indx] # Selecciona los parametros extra en el tiempo t
-        parametros_actuales_2 = parametros2[indx]
+        # parametros_actuales = parametros(t) # Selecciona los parametros extra en el tiempo t
+        # parametros_actuales_2 = parametros2(t)
         entrada_red = vcat(u, parametros_actuales, parametros_actuales_2) # Concatena los el valor de S(t) con los parametros extra en el tiempo t
         return re(p)(entrada_red) # Regresa la salida de la red neuronal re creada con los parámetros p
     end
@@ -247,17 +248,16 @@ function Predict_Singals(U0, parametros_extra, parametros_extra2, time_batch)
     Predicted_Signals = zeros(size(time_batch))
     for i in 1:length(U0)
         u0 = Float32[U0[i]]
-        println("Entrenando señal: ", i)
-        predicted_signal = predict_NeuralODE(u0, parametros_extra[:, i], parametros_extra2[:, i], time_batch)[1, :]
+        predicted_signal = predict_NeuralODE(u0, parametros_extra[i], parametros_extra2[i], time_batch)[1, :]
         Predicted_Signals = hcat(Predicted_Signals, predicted_signal)
     end    
     Predicted_Signals[:,2:end]
 end
 
+
 # Función que calcula el loss de la red neuronal para un batch de datos y sus respectivos tiempos
 
 # Penalization term
-
 function penalization_term(time_batch,y)
     """
     Función de penalización para tratar de mantener la señal monotonamente decrecente
@@ -276,7 +276,7 @@ function loss_node(batch, time_batch, lamb = 0.1)
 end
 
 function loss_valid(batch, time_batch, lamb = 0.1)
-    y = Predict_Singals(U0, extra_parameters_valid, extra_parameters2, time_batch)
+    y = Predict_Singals(U0_test, extra_parameters_test, extra_parameters2_test, time_batch)
     return Flux.mse(y, batch') #+ lamb * (penalization_term(time_batch, y))
 end
 
@@ -287,9 +287,6 @@ loss = []
 loss_valid_array = []
 callback = function ()
     global iter += 1
-
-    println("Iteración: ", iter)
-
     if iter % (length(train_loader)) == 0
         epoch = Int(iter / length(train_loader))
         actual_loss = loss_node(Signals_rep, t)
@@ -297,11 +294,6 @@ callback = function ()
         println("Epoch = $epoch || Loss: $actual_loss || Loss Forecast: $forecast_loss")
         push!(loss, actual_loss)
         push!(loss_valid_array, forecast_loss)
-        if epoch % 20 == 0
-            plot_predictions = scatter(t, Signals_rep', label = false, xlabel = "t", ylabel = "S(t)", title = "Predicción de señales", lw = 2, tickfontsize=12, labelfontsize=15, legendfontsize=11, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10)
-            plot!(t, Predict_Singals(U0, extra_parameters_valid, extra_parameters_valid2, t), label = false , xlabel = "t", ylabel = "S(t)", title = "Predicción de señales", lw = 2, color = :red, markershape = :circle)
-            display(plot_predictions)
-        end
     end
     return false
 end
@@ -314,7 +306,7 @@ Flux.train!(loss_node, Flux.params(p), ncycle(train_loader, epochs), opt, cb = c
 # Guardamos los parámetros
 df_parameters = DataFrame(reshape(p, length(p), 1), :auto)
 
-# CSV.write("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/ExploracionCompleta/ExploracionPocosPuntos/ArquitecturaEspecifica/Parameters/$(actual_id)_ParametersV2.csv", df_parameters)
+CSV.write("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/ExploracionCompleta/ExploracionPocosPuntos/ArquitecturaEspecifica/Parameters/$(actual_id)_Parameters.csv", df_parameters)
 
 # Guardamos las funciónes de loss
 Loss_Matrix = zeros((length(loss), 2))
@@ -328,31 +320,10 @@ df_losses = DataFrame(Loss_Matrix, :auto)
 rename!(df_losses, Symbol("x1") => Symbol("Loss_Entrenamiento"))
 rename!(df_losses, Symbol("x2") => Symbol("Loss_Predicción"))
 
-if isfile("../3-GeneracionDeSeñales/ExploracionV2/ArquitecturaEspecifica/Losses/$(actual_id)_lossesV2.csv")
-   df_losses = CSV.read("../3-GeneracionDeSeñales/ExploracionV2/ArquitecturaEspecifica/Losses/$(actual_id)_lossesV2.csv", DataFrame)
+if isfile("../3-GeneracionDeSeñales/ExploracionV3/ArquitecturaEspecifica/Losses/$(actual_id)_losses.csv")
+   df_losses = CSV.read("../3-GeneracionDeSeñales/ExploracionV3/ArquitecturaEspecifica/Losses/$(actual_id)_losses.csv", DataFrame)
    loss = df_losses[:,1]
    loss_valid_array = df_losses[:,2]
 else
     println("No se encontraron los loss de la red neuronal")
 end
-
-# CSV.write("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/ExploracionCompleta/ExploracionPocosPuntos/ArquitecturaEspecifica/Losses/$(actual_id)_lossesV2.csv", df_losses)
-
-start_index = 100
-
-plots_loss = plot(loss[start_index:end], label = "Loss de entrenamiento", xlabel = "Época", ylabel = "Loss", title = "Loss de entrenamiento", lw = 2, tickfontsize=12, labelfontsize=15, legendfontsize=11, framestyle =:box, gridlinewidth=1, xminorticks=10, yminorticks=10)
-plot!(loss_valid_array[start_index:end], label = "Loss de predicción", xlabel = "Época", ylabel = "Loss", title = "Loss de entrenamiento", lw = 2)
-savefig("../3-GeneracionDeSeñales/ExploracionV2/ArquitecturaEspecifica/Imagenes/3LSignals_LossV2.png")
-
-# # ##############################################################################################
-
-# # # Vamos a hacer un plot de las señales de entrenamiento y sus predicciones
-plot_predictions = scatter(t, Signals_rep', label = false)
-vline!([0.1])
-plot!(t, Predict_Singals(U0[1], extra_parameters[:,1], extra_parameters2[:,1], t), label = "Prediccion Entrenamiento", xlabel = "t", ylabel = "S(t)", title = "Predicción de señales", lw = 2, color = :red, markershape = :circle)
-plot!(t, Predict_Singals(U0[2:end], extra_parameters[:,2:end], extra_parameters2[:,2:end], t), label = false, xlabel = "t", ylabel = "S(t)", title = "Predicción de señales", lw = 2, color = :red, markershape = :circle)
-plot!(t, Predict_Singals(U0[1], extra_parameters_valid[:,1], extra_parameters2[:,1], t), label = "Prediccion Validación", xlabel = "t", ylabel = "S(t)", title = "Predicción de señales", lw = 2, color = :orange, markershape = :utriangle, ls = :dash)
-plot!(t, Predict_Singals(U0[2:end], extra_parameters_valid[:,2:end], extra_parameters2[:,2:end], t), label = false, xlabel = "t", ylabel = "S(t)", title = "Predicción de señales", lw = 2, color = :orange, markershape = :utriangle, ls = :dash)
-scatter!(tvalid, Signals_valid', label = false, lw = 2, color = :blue, markershape = :star6, markersize = 8)
-
-savefig("C:/Users/Propietario/Desktop/ib/Tesis_V1/Proyecto_Tesis/3-GeneracionDeSeñales/ExploracionV2/ArquitecturaEspecifica/Imagenes/3LSignals_predicciónV2.png")
