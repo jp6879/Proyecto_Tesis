@@ -1,0 +1,2 @@
+ID,Arquitectura,Activación,Optimizador,Batch_Size,Lambda,Eta,Loss_Final_Entrenamiento,Loss_Final_Predicción
+37,"[3, 32, 32, 16, 1]",relu,AdamW,30,0.0,0.001,0.0023078152250310575,0.001968905420803598
